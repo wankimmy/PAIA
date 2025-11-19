@@ -424,7 +424,7 @@ AI responds: "Created tag 'Personal and Work'"
 **Notes**:
 - "Save this in my notes: [content]"
 - "Store this address in notes with tag Personal"
-- "Put this in notes: C-05-16, PERSIARAN RIMBA, CYBERJAYA"
+- "Put this in notes: MY HOME ADDRESS xxx"
 
 **Meetings**:
 - "Schedule a meeting with John tomorrow at 3 PM about the project"
