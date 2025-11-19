@@ -3,6 +3,11 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
+// Check if we're in development mode
+const isDevelopment = process.env.APP_ENV === 'local' || 
+                      process.env.APP_ENV === 'development' ||
+                      process.env.NODE_ENV === 'development'
+
 export default defineConfig({
   plugins: [
     vue(),
@@ -41,12 +46,30 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    host: '0.0.0.0',
+    // Enable HMR (Hot Module Replacement) only in development
+    hmr: isDevelopment ? {
+      host: 'localhost',
+      port: 3000
+    } : false,
+    watch: isDevelopment ? {
+      usePolling: true // Needed for Docker volume mounts
+    } : null,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true
+        // In Docker, proxy to nginx service; locally use localhost:8000
+        // Vite proxy runs in Node, so we can use Docker service names
+        target: process.env.VITE_API_URL || 'http://nginx:80',
+        changeOrigin: true,
+        secure: false,
+        ws: true
       }
     }
+  },
+  build: {
+    // Production build settings
+    sourcemap: isDevelopment,
+    minify: !isDevelopment
   }
 })
 

@@ -15,9 +15,21 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/tags',
+    name: 'Tags',
+    component: () => import('../views/Tags.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/tasks',
     name: 'Tasks',
     component: () => import('../views/Tasks.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/meetings',
+    name: 'Meetings',
+    component: () => import('../views/Meetings.vue'),
     meta: { requiresAuth: true }
   },
   {

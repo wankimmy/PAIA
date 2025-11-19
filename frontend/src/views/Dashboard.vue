@@ -54,7 +54,7 @@
       <div class="flex gap-4">
         <div class="card" style="flex: 1;">
           <h4 class="text-gray-600">Total Tasks</h4>
-          <p style="font-size: 2rem; font-weight: bold; color: #4f46e5;">{{ stats.totalTasks }}</p>
+          <p style="font-size: 2rem; font-weight: bold; color: #7367f0;">{{ stats.totalTasks }}</p>
         </div>
         <div class="card" style="flex: 1;">
           <h4 class="text-gray-600">Pending Tasks</h4>

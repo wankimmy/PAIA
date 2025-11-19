@@ -118,23 +118,24 @@
             Showing {{ filteredMemories.length }} of {{ allMemories.length }} memories
           </div>
           <div v-for="category in memoryCategories" :key="category.key" class="memory-category mb-4">
-            <h4 style="margin-bottom: 0.75rem; color: #4f46e5;">{{ category.label }}</h4>
+            <h4 style="margin-bottom: 0.75rem; color: #7367f0;">{{ category.label }}</h4>
             <div v-if="getFilteredMemoriesByCategory(category.key).length === 0" class="text-gray-600 text-sm">
               No memories in this category
             </div>
             <div v-else>
               <div v-for="memory in getFilteredMemoriesByCategory(category.key)" :key="memory.id" class="memory-item">
-              <div class="flex items-center justify-between">
-                <div style="flex: 1;">
-                  <p class="memory-value">{{ memory.value }}</p>
-                  <div class="flex items-center gap-2 mt-1">
-                    <span class="memory-meta">Importance: {{ '⭐'.repeat(memory.importance) }}</span>
-                    <span class="memory-meta">Source: {{ memory.source }}</span>
+                <div class="flex items-center justify-between">
+                  <div style="flex: 1;">
+                    <p class="memory-value">{{ memory.value }}</p>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="memory-meta">Importance: {{ getImportanceStars(memory.importance) }}</span>
+                      <span class="memory-meta">Source: {{ memory.source }}</span>
+                    </div>
                   </div>
-                </div>
-                <div class="flex gap-2">
-                  <button @click="editMemory(memory)" class="btn btn-secondary">Edit</button>
-                  <button @click="deleteMemory(memory.id)" class="btn btn-danger">Delete</button>
+                  <div class="flex gap-2">
+                    <button @click="editMemory(memory)" class="btn btn-secondary">Edit</button>
+                    <button @click="deleteMemory(memory.id)" class="btn btn-danger">Delete</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -365,6 +366,10 @@ const closeMemoryModal = () => {
     value: '',
     importance: 3
   }
+}
+
+const getImportanceStars = (importance) => {
+  return '⭐'.repeat(importance)
 }
 </script>
 

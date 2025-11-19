@@ -44,7 +44,7 @@
                 {{ option.label }}
               </button>
             </div>
-
+            
             <div class="actions">
               <button @click="submitAnswer" class="btn btn-primary" :disabled="!currentAnswer.trim()">
                 {{ currentQuestionIndex === questions.length - 1 ? 'Finish' : 'Next' }}
@@ -350,7 +350,7 @@ const savePreferences = async () => {
 
 .onboarding-header h2 {
   margin-bottom: 0.5rem;
-  color: #4f46e5;
+  color: #7367f0;
 }
 
 .onboarding-content {
@@ -373,7 +373,7 @@ const savePreferences = async () => {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #7367f0 0%, #9c88ff 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -424,14 +424,14 @@ const savePreferences = async () => {
 }
 
 .option-btn:hover {
-  border-color: #4f46e5;
+  border-color: #7367f0;
   background: #eef2ff;
 }
 
 .option-btn.selected {
-  border-color: #4f46e5;
+  border-color: #7367f0;
   background: #eef2ff;
-  color: #4f46e5;
+  color: #7367f0;
   font-weight: 500;
 }
 
@@ -439,6 +439,7 @@ const savePreferences = async () => {
   display: flex;
   gap: 0.75rem;
   justify-content: flex-end;
+  margin-top: 1.5rem;
 }
 
 .completing {
@@ -450,7 +451,7 @@ const savePreferences = async () => {
   width: 48px;
   height: 48px;
   border: 4px solid #e5e7eb;
-  border-top-color: #4f46e5;
+  border-top-color: #7367f0;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 1rem;
@@ -470,7 +471,7 @@ const savePreferences = async () => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #7367f0 0%, #9c88ff 100%);
   transition: width 0.3s ease;
 }
 

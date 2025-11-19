@@ -13,38 +13,79 @@ class AuthController extends Controller
 {
     public function requestOtp(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+
+            $email = $request->email;
+            
+            // Check database connection
+            try {
+                \DB::connection()->getPdo();
+            } catch (\Exception $e) {
+                \Log::error('Database connection failed', ['error' => $e->getMessage()]);
+                return response()->json([
+                    'error' => 'Database connection failed. Please check your database configuration.',
+                ], 500);
+            }
+
+            $user = User::firstOrCreate(['email' => $email]);
+
+            // Generate 6-digit OTP
+            $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            
+            // Expires in 10 minutes
+            $expiresAt = now()->addMinutes(10);
+
+            LoginOtp::create([
+                'user_id' => $user->id,
+                'code' => $code,
+                'expires_at' => $expiresAt,
+            ]);
+
+            // Send OTP via email (log if mail fails in development)
+            try {
+                Mail::raw("Your login code is: {$code}\n\nThis code will expire in 10 minutes.", function ($message) use ($email) {
+                    $message->to($email)
+                            ->subject('Your Login Code');
+                });
+            } catch (\Exception $e) {
+                // Log the error but don't fail the request
+                \Log::warning('Failed to send OTP email', [
+                    'email' => $email,
+                    'error' => $e->getMessage(),
+                    'code' => $code, // Log code for development
+                ]);
+                
+                // In development, return the code in the response for testing
+                if (config('app.debug')) {
+                    return response()->json([
+                        'message' => 'OTP generated (email sending failed - check logs)',
+                        'code' => $code, // Only in debug mode
+                        'warning' => 'Email service not configured. Check backend logs for OTP code.',
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'message' => 'OTP sent to your email',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('OTP request failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'error' => 'An error occurred while processing your request.',
+                'message' => config('app.debug') ? $e->getMessage() : 'Please try again later.',
+            ], 500);
         }
-
-        $email = $request->email;
-        $user = User::firstOrCreate(['email' => $email]);
-
-        // Generate 6-digit OTP
-        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        
-        // Expires in 10 minutes
-        $expiresAt = now()->addMinutes(10);
-
-        LoginOtp::create([
-            'user_id' => $user->id,
-            'code' => $code,
-            'expires_at' => $expiresAt,
-        ]);
-
-        // Send OTP via email
-        Mail::raw("Your login code is: {$code}\n\nThis code will expire in 10 minutes.", function ($message) use ($email) {
-            $message->to($email)
-                    ->subject('Your Login Code');
-        });
-
-        return response()->json([
-            'message' => 'OTP sent to your email',
-        ]);
     }
 
     public function verifyOtp(Request $request)

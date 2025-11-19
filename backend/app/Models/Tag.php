@@ -25,5 +25,15 @@ class Tag extends Model
     {
         return $this->hasMany(Task::class);
     }
+
+    public function notes()
+    {
+        return $this->hasMany(Note::class);
+    }
+
+    public function meetings()
+    {
+        return $this->hasMany(Meeting::class);
+    }
 }
 

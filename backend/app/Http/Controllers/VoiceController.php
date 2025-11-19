@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Meeting;
+use App\Models\MeetingReminder;
 use App\Models\Reminder;
 use App\Models\Task;
 use App\Services\AiMemoryService;
@@ -33,7 +35,7 @@ class VoiceController extends Controller
     public function command(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'audio' => 'required|file|mimes:mp3,wav,ogg,m4a|max:10240',
+            'audio' => 'required|file|mimes:mp3,wav,ogg,m4a,webm|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -62,11 +64,26 @@ class VoiceController extends Controller
             })
             ->toArray();
 
+        $meetings = $user->meetings()
+            ->where('status', '!=', 'cancelled')
+            ->where('start_time', '>=', now())
+            ->orderBy('start_time', 'asc')
+            ->limit(5)
+            ->get()
+            ->map(function ($meeting) {
+                return [
+                    'title' => $meeting->title,
+                    'start_time' => $meeting->start_time?->toIso8601String(),
+                ];
+            })
+            ->toArray();
+
         $profileContext = $this->memoryService->getUserProfileContext($user);
         $memories = $this->memoryService->getUserMemoryContext($user);
 
         $context = [
             'tasks' => $tasks,
+            'meetings' => $meetings,
             'profile' => $profileContext,
             'memories' => $memories,
         ];
@@ -76,6 +93,7 @@ class VoiceController extends Controller
 
         $created = [];
         $createdTasks = [];
+        $createdMeetings = [];
 
         // Create tasks
         foreach ($actions['tasks'] ?? [] as $index => $taskData) {
@@ -96,6 +114,38 @@ class VoiceController extends Controller
             if (isset($reminderData['task_index']) && isset($createdTasks[$reminderData['task_index']])) {
                 Reminder::create([
                     'task_id' => $createdTasks[$reminderData['task_index']]->id,
+                    'remind_at' => $reminderData['remind_at'],
+                ]);
+            }
+        }
+
+        // Create meetings
+        foreach ($actions['meetings'] ?? [] as $index => $meetingData) {
+            $startTime = isset($meetingData['start_time']) ? $meetingData['start_time'] : now()->addHour();
+            $endTime = isset($meetingData['end_time']) 
+                ? $meetingData['end_time'] 
+                : (new \Carbon\Carbon($startTime))->addHour();
+
+            $meeting = $request->user()->meetings()->create([
+                'title' => $meetingData['title'] ?? 'Untitled Meeting',
+                'description' => $meetingData['description'] ?? null,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'location' => $meetingData['location'] ?? null,
+                'attendees' => $meetingData['attendees'] ?? null,
+                'status' => 'scheduled',
+                'created_via' => 'voice',
+            ]);
+
+            $createdMeetings[$index] = $meeting;
+            $created['meetings'][] = $meeting;
+        }
+
+        // Create meeting reminders
+        foreach ($actions['meeting_reminders'] ?? [] as $reminderData) {
+            if (isset($reminderData['meeting_index']) && isset($createdMeetings[$reminderData['meeting_index']])) {
+                MeetingReminder::create([
+                    'meeting_id' => $createdMeetings[$reminderData['meeting_index']]->id,
                     'remind_at' => $reminderData['remind_at'],
                 ]);
             }

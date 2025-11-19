@@ -2,42 +2,63 @@
   <div class="container">
     <div class="flex items-center justify-between mb-4">
       <h2>Tasks</h2>
-      <div class="flex gap-2">
-        <button @click="showTagModal = true" class="btn btn-secondary">Manage Tags</button>
-        <button @click="showAddModal = true" class="btn btn-primary">Add Task</button>
-      </div>
+      <button @click="showAddModal = true" class="btn btn-primary">Add Task</button>
     </div>
 
-    <div v-if="loading" class="text-center">Loading...</div>
+    <!-- Loading State -->
+    <div v-if="loading" class="text-center py-8">
+      <div class="spinner"></div>
+      <p class="text-gray-600 mt-2">Loading tasks...</p>
+    </div>
     
-    <div v-else>
-      <div v-for="task in tasks" :key="task.id" class="card">
-        <div class="flex items-center justify-between">
-          <div style="flex: 1;">
-            <h3 :style="{ textDecoration: task.status === 'done' ? 'line-through' : 'none', color: task.status === 'done' ? '#6b7280' : 'inherit' }">
-              {{ task.title }}
-            </h3>
-            <p v-if="task.description" class="text-gray-600">{{ task.description }}</p>
-            <div class="flex gap-4 mt-2" style="font-size: 0.875rem;">
+    <!-- Table View -->
+    <div v-else class="card">
+      <div v-if="tasks.length === 0" class="text-center text-gray-600 py-8">
+        No tasks yet. Create one to get started!
+      </div>
+      <table v-else class="data-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Due Date</th>
+            <th>Tag</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="task in tasks" :key="task.id" :class="{ 'completed': task.status === 'done' }">
+            <td>
+              <strong>{{ task.title }}</strong>
+            </td>
+            <td>
+              <span class="text-gray-600">{{ task.description || '-' }}</span>
+            </td>
+            <td>
+              <span :class="getStatusClass(task.status)">{{ task.status }}</span>
+            </td>
+            <td>
               <span v-if="task.due_at" class="text-gray-600">
-                Due: {{ new Date(task.due_at).toLocaleString() }}
+                {{ formatDate(task.due_at) }}
               </span>
+              <span v-else class="text-gray-400">-</span>
+            </td>
+            <td>
               <span v-if="task.tag" class="tag-badge" :style="{ backgroundColor: task.tag.color || '#e5e7eb', color: '#1f2937' }">
                 {{ task.tag.name }}
               </span>
-              <span class="text-gray-600">Status: {{ task.status }}</span>
-            </div>
-          </div>
-          <div class="flex gap-2">
-            <button @click="editTask(task)" class="btn btn-secondary">Edit</button>
-            <button @click="deleteTask(task.id)" class="btn btn-danger">Delete</button>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="tasks.length === 0" class="text-center text-gray-600">
-        No tasks yet. Create one to get started!
-      </div>
+              <span v-else class="text-gray-400">-</span>
+            </td>
+            <td>
+              <div class="flex gap-2">
+                <button @click="editTask(task)" class="btn btn-secondary btn-sm">Edit</button>
+                <button @click="deleteTask(task.id)" class="btn btn-danger btn-sm">Delete</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- Add/Edit Modal -->
@@ -73,84 +94,13 @@
             </select>
           </div>
           <div class="flex gap-2">
-            <button type="submit" class="btn btn-primary" style="flex: 1;">Save</button>
+            <button type="submit" class="btn btn-primary" style="flex: 1;" :disabled="saving">
+              <span v-if="saving">Saving...</span>
+              <span v-else>Save</span>
+            </button>
             <button type="button" @click="closeModal" class="btn btn-secondary">Cancel</button>
           </div>
         </form>
-      </div>
-    </div>
-
-    <!-- Tag Management Modal -->
-    <div v-if="showTagModal" class="modal" @click.self="closeTagModal">
-      <div class="modal-content">
-        <h3>Manage Tags</h3>
-        <div class="mb-4">
-          <button v-if="!showNewTagForm && editingTag === null" @click="showNewTagForm = true" class="btn btn-primary mb-4">
-            Add New Tag
-          </button>
-          <button v-else-if="showNewTagForm && editingTag === null" @click="showNewTagForm = false; tagForm = { name: '', color: '#3b82f6', description: '' }" class="btn btn-secondary mb-4">
-            Cancel New Tag
-          </button>
-          <div v-if="tags.length === 0" class="text-gray-600 text-sm">No tags yet. Create one!</div>
-          <div v-else>
-            <div v-for="tag in tags" :key="tag.id" class="tag-item mb-2">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="tag-badge" :style="{ backgroundColor: tag.color || '#e5e7eb', color: '#1f2937' }">
-                    {{ tag.name }}
-                  </span>
-                  <span v-if="tag.description" class="text-sm text-gray-600">{{ tag.description }}</span>
-                </div>
-                <div class="flex gap-2">
-                  <button @click="editTag(tag)" class="btn btn-secondary btn-sm">Edit</button>
-                  <button @click="deleteTag(tag.id)" class="btn btn-danger btn-sm">Delete</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="showNewTagForm && editingTag === null" class="tag-form">
-          <h4 class="mb-2">New Tag</h4>
-          <div class="mb-4">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Name *</label>
-            <input v-model="tagForm.name" type="text" class="input" placeholder="e.g., Work, Personal, Urgent" />
-          </div>
-          <div class="mb-4">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Color</label>
-            <input v-model="tagForm.color" type="color" class="input" style="height: 40px; padding: 0;" />
-          </div>
-          <div class="mb-4">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Description</label>
-            <textarea v-model="tagForm.description" class="input" rows="2" placeholder="Optional description"></textarea>
-          </div>
-          <div class="flex gap-2">
-            <button @click="saveTag" class="btn btn-primary" :disabled="!tagForm.name.trim()">Save Tag</button>
-            <button @click="editingTag = null; tagForm = { name: '', color: '#3b82f6', description: '' }" class="btn btn-secondary">Cancel</button>
-          </div>
-        </div>
-
-        <div v-else class="tag-form">
-          <h4 class="mb-2">Edit Tag</h4>
-          <div class="mb-4">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Name *</label>
-            <input v-model="tagForm.name" type="text" class="input" />
-          </div>
-          <div class="mb-4">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Color</label>
-            <input v-model="tagForm.color" type="color" class="input" style="height: 40px; padding: 0;" />
-          </div>
-          <div class="mb-4">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Description</label>
-            <textarea v-model="tagForm.description" class="input" rows="2"></textarea>
-          </div>
-          <div class="flex gap-2">
-            <button @click="saveTag" class="btn btn-primary" :disabled="!tagForm.name.trim()">Update Tag</button>
-            <button @click="closeTagModal" class="btn btn-secondary">Cancel</button>
-          </div>
-        </div>
-
-        <button @click="closeTagModal" class="btn btn-secondary mt-4" style="width: 100%;">Close</button>
       </div>
     </div>
   </div>
@@ -159,20 +109,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '../services/api'
+import useToastNotification from '../composables/useToast'
+
+const toast = useToastNotification()
 
 const tasks = ref([])
 const tags = ref([])
 const loading = ref(false)
+const saving = ref(false)
 const showAddModal = ref(false)
-const showTagModal = ref(false)
 const editingTask = ref(null)
-const editingTag = ref(null)
-const showNewTagForm = ref(false)
-const tagForm = ref({
-  name: '',
-  color: '#3b82f6',
-  description: ''
-})
 const taskForm = ref({
   title: '',
   description: '',
@@ -193,6 +139,7 @@ const loadTasks = async () => {
     tasks.value = response.data
   } catch (error) {
     console.error('Failed to load tasks:', error)
+    toast.error('Failed to load tasks')
   } finally {
     loading.value = false
   }
@@ -207,28 +154,46 @@ const loadTags = async () => {
   }
 }
 
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  return new Date(dateString).toLocaleString()
+}
+
+const getStatusClass = (status) => {
+  const classes = {
+    'pending': 'status-badge status-pending',
+    'done': 'status-badge status-done',
+    'cancelled': 'status-badge status-cancelled'
+  }
+  return classes[status] || 'status-badge'
+}
+
 const saveTask = async () => {
+  saving.value = true
   try {
     const data = { ...taskForm.value }
     if (data.due_at) {
       data.due_at = new Date(data.due_at).toISOString()
     }
-    // Remove null tag_id
     if (!data.tag_id) {
       delete data.tag_id
     }
 
     if (editingTask.value) {
       await api.put(`/tasks/${editingTask.value.id}`, data)
+      toast.success('Task updated successfully')
     } else {
       await api.post('/tasks', data)
+      toast.success('Task created successfully')
     }
 
     closeModal()
     loadTasks()
   } catch (error) {
     console.error('Failed to save task:', error)
-    alert('Failed to save task')
+    toast.error(error.response?.data?.message || 'Failed to save task')
+  } finally {
+    saving.value = false
   }
 }
 
@@ -248,10 +213,11 @@ const deleteTask = async (id) => {
 
   try {
     await api.delete(`/tasks/${id}`)
+    toast.success('Task deleted successfully')
     loadTasks()
   } catch (error) {
     console.error('Failed to delete task:', error)
-    alert('Failed to delete task')
+    toast.error('Failed to delete task')
   }
 }
 
@@ -267,58 +233,64 @@ const closeModal = () => {
   }
 }
 
-const saveTag = async () => {
-  try {
-    if (editingTag.value) {
-      await api.put(`/tags/${editingTag.value.id}`, tagForm.value)
-    } else {
-      await api.post('/tags', tagForm.value)
-    }
-    showNewTagForm.value = false
-    editingTag.value = null
-    tagForm.value = { name: '', color: '#3b82f6', description: '' }
-    loadTags()
-  } catch (error) {
-    console.error('Failed to save tag:', error)
-    alert(error.response?.data?.error || 'Failed to save tag')
-  }
-}
-
-const editTag = (tag) => {
-  editingTag.value = tag
-  showNewTagForm.value = false
-  tagForm.value = {
-    name: tag.name,
-    color: tag.color || '#3b82f6',
-    description: tag.description || ''
-  }
-}
-
-const deleteTag = async (id) => {
-  if (!confirm('Are you sure you want to delete this tag? Tasks using this tag will have their tag removed.')) return
-
-  try {
-    await api.delete(`/tags/${id}`)
-    loadTags()
-  } catch (error) {
-    console.error('Failed to delete tag:', error)
-    alert(error.response?.data?.error || 'Failed to delete tag')
-  }
-}
-
-const closeTagModal = () => {
-  showTagModal.value = false
-  editingTag.value = null
-  showNewTagForm.value = false
-  tagForm.value = {
-    name: '',
-    color: '#3b82f6',
-    description: ''
-  }
-}
 </script>
 
 <style scoped>
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  background: #f9fafb;
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #e5e7eb;
+  color: #374151;
+}
+
+.data-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.data-table tr:hover {
+  background: #f9fafb;
+}
+
+.data-table tr.completed {
+  opacity: 0.6;
+}
+
+.data-table tr.completed td {
+  text-decoration: line-through;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-done {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .modal {
   position: fixed;
   top: 0;
@@ -355,22 +327,34 @@ textarea.input {
   font-weight: 500;
 }
 
-.tag-item {
-  padding: 0.75rem;
-  background: #f9fafb;
-  border-radius: 0.5rem;
-}
-
 .btn-sm {
   padding: 0.375rem 0.75rem;
   font-size: 0.875rem;
 }
 
-.tag-form {
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 0.5rem;
-  margin-top: 1rem;
+.spinner {
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #7367f0;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .data-table {
+    font-size: 0.875rem;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: 0.5rem;
+  }
 }
 </style>
-

@@ -16,11 +16,27 @@ return Application::configure(basePath: dirname(__DIR__))
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
+        $middleware->validateCsrfTokens(except: [
+            'api/auth/request-otp',
+            'api/auth/verify-otp',
+        ]);
+
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Ensure API errors return JSON
+        $exceptions->render(function (\Throwable $e, $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'error' => 'An error occurred',
+                    'message' => config('app.debug') ? $e->getMessage() : 'Please try again later.',
+                    'file' => config('app.debug') ? $e->getFile() : null,
+                    'line' => config('app.debug') ? $e->getLine() : null,
+                    'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+                ], 500);
+            }
+        });
     })->create();
 

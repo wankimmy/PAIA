@@ -119,5 +119,23 @@ class AiMemoryService
         // For now, return empty array - will be implemented with Ollama call
         return [];
     }
+
+    public function getChatHistory(User $user, int $limit = 10): array
+    {
+        $interactions = AiInteraction::where('user_id', $user->id)
+            ->where('interaction_type', 'chat')
+            ->orderBy('occurred_at', 'desc')
+            ->limit($limit)
+            ->get();
+
+        return $interactions->map(function ($interaction) {
+            $meta = $interaction->metadata ?? [];
+            return [
+                'user_message' => $meta['user_message'] ?? '',
+                'ai_response' => $meta['ai_response'] ?? '',
+                'occurred_at' => $interaction->occurred_at->toIso8601String(),
+            ];
+        })->reverse()->values()->toArray(); // Reverse to get chronological order
+    }
 }
 

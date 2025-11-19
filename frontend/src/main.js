@@ -3,6 +3,8 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import './style.css'
+import Toast from 'vue-toastification'
+import 'vue-toastification/dist/index.css'
 import { subscribeToPush } from './services/push'
 import api from './services/api'
 import { useAuthStore } from './stores/auth'
@@ -12,6 +14,23 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
+app.use(Toast, {
+  transition: 'Vue-Toastification__bounce',
+  maxToasts: 20,
+  newestOnTop: true,
+  position: 'top-right',
+  timeout: 3000,
+  closeOnClick: true,
+  pauseOnFocusLoss: true,
+  pauseOnHover: true,
+  draggable: true,
+  draggablePercent: 0.6,
+  showCloseButtonOnHover: false,
+  hideProgressBar: false,
+  closeButton: 'button',
+  icon: true,
+  rtl: false
+})
 app.mount('#app')
 
 // Register service worker for PWA and subscribe to push notifications
