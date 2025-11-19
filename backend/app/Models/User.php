@@ -51,5 +51,30 @@ class User extends Authenticatable
     {
         return $this->hasOne(UserSetting::class);
     }
+
+    public function preferences()
+    {
+        return $this->hasOne(UserPreference::class);
+    }
+
+    public function profile()
+    {
+        return $this->hasOne(UserProfile::class);
+    }
+
+    public function aiMemories()
+    {
+        return $this->hasMany(AiMemory::class);
+    }
+
+    public function aiInteractions()
+    {
+        return $this->hasMany(AiInteraction::class);
+    }
+
+    public function tags()
+    {
+        return $this->hasMany(Tag::class);
+    }
 }
 

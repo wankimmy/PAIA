@@ -5,41 +5,28 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Task extends Model
+class AiInteraction extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'user_id',
-        'title',
-        'description',
-        'status',
-        'due_at',
-        'tag',
-        'tag_id',
-        'created_via',
+        'interaction_type',
+        'metadata',
+        'occurred_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'due_at' => 'datetime',
+            'metadata' => 'array',
+            'occurred_at' => 'datetime',
         ];
     }
 
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function reminders()
-    {
-        return $this->hasMany(Reminder::class);
-    }
-
-    public function tag()
-    {
-        return $this->belongsTo(Tag::class);
     }
 }
 

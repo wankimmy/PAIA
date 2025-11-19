@@ -1,8 +1,11 @@
 <template>
   <div class="container">
-    <h2 style="margin-bottom: 1.5rem;">Dashboard</h2>
+    <Onboarding v-if="showOnboarding" @complete="handleOnboardingComplete" />
+    
+    <div v-if="!showOnboarding">
+      <h2 style="margin-bottom: 1.5rem;">Dashboard</h2>
 
-    <div v-if="loading" class="text-center">Loading...</div>
+      <div v-if="loading" class="text-center">Loading...</div>
 
     <div v-else>
       <!-- Today's Tasks -->
@@ -63,14 +66,17 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '../services/api'
+import Onboarding from '../components/Onboarding.vue'
 
 const loading = ref(false)
+const showOnboarding = ref(false)
 const todayTasks = ref([])
 const upcomingReminders = ref([])
 const stats = ref({
@@ -79,9 +85,27 @@ const stats = ref({
   totalNotes: 0
 })
 
-onMounted(() => {
-  loadDashboard()
+onMounted(async () => {
+  await checkOnboardingStatus()
+  if (!showOnboarding.value) {
+    loadDashboard()
+  }
 })
+
+const checkOnboardingStatus = async () => {
+  try {
+    const response = await api.get('/preferences')
+    showOnboarding.value = !response.data.onboarding_completed
+  } catch (error) {
+    // If preferences don't exist, show onboarding
+    showOnboarding.value = true
+  }
+}
+
+const handleOnboardingComplete = () => {
+  showOnboarding.value = false
+  loadDashboard()
+}
 
 const loadDashboard = async () => {
   loading.value = true

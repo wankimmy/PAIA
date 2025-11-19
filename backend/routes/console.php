@@ -11,3 +11,6 @@ Artisan::command('inspire', function () {
 // Schedule reminder notifications to run every minute
 Schedule::command('reminders:send')->everyMinute();
 
+// Schedule habit aggregation to run daily
+Schedule::command('habits:aggregate')->daily();
+

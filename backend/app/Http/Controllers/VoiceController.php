@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Reminder;
 use App\Models\Task;
+use App\Services\AiMemoryService;
 use App\Services\EncryptionService;
 use App\Services\OllamaService;
 use App\Services\SttService;
@@ -15,15 +16,18 @@ class VoiceController extends Controller
     protected SttService $stt;
     protected OllamaService $ollama;
     protected EncryptionService $encryption;
+    protected AiMemoryService $memoryService;
 
     public function __construct(
         SttService $stt,
         OllamaService $ollama,
-        EncryptionService $encryption
+        EncryptionService $encryption,
+        AiMemoryService $memoryService
     ) {
         $this->stt = $stt;
         $this->ollama = $ollama;
         $this->encryption = $encryption;
+        $this->memoryService = $memoryService;
     }
 
     public function command(Request $request)
@@ -43,8 +47,10 @@ class VoiceController extends Controller
             return response()->json(['error' => 'Could not transcribe audio'], 400);
         }
 
-        // Build context
-        $tasks = $request->user()->tasks()
+        $user = $request->user();
+
+        // Build context with memory
+        $tasks = $user->tasks()
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get()
@@ -56,7 +62,14 @@ class VoiceController extends Controller
             })
             ->toArray();
 
-        $context = ['tasks' => $tasks];
+        $profileContext = $this->memoryService->getUserProfileContext($user);
+        $memories = $this->memoryService->getUserMemoryContext($user);
+
+        $context = [
+            'tasks' => $tasks,
+            'profile' => $profileContext,
+            'memories' => $memories,
+        ];
 
         // Parse command with AI
         $actions = $this->ollama->parseVoiceCommand($transcribedText, $context);
@@ -107,6 +120,12 @@ class VoiceController extends Controller
             ]);
             $created['passwords'][] = $entry;
         }
+
+        // Record interaction
+        $this->memoryService->recordInteraction($user, 'voice_command', [
+            'transcribed_length' => strlen($transcribedText),
+            'actions_created' => !empty($created),
+        ]);
 
         return response()->json([
             'transcribed_text' => $transcribedText,

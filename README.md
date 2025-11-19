@@ -142,6 +142,8 @@ npm run dev
 - **VAPID Keys**: Generate VAPID keys for Web Push notifications (see SETUP.md)
 - **Ollama**: Ensure Ollama is running and the model (`llama3.2`) is pulled before using AI features
 - **STT Service**: The Whisper STT service is optional. You can mock it or set up your own service
+- **AI Memory**: The AI learns about you through onboarding and conversations. View/edit memories in Settings
+- **Auto-Memory**: Set `AI_AUTO_MEMORY_ENABLED=true` in `.env` to enable automatic memory extraction (default: false)
 
 ## Project Structure
 
@@ -153,6 +155,18 @@ PAIA/
 ├── docker-compose.yml
 └── README.md
 ```
+
+## AI Memory System
+
+The app includes a comprehensive AI memory system:
+
+- **User Profile**: Stores basic info (name, pronouns, bio, timezone, preferences)
+- **AI Memories**: Persistent facts organized by category (personal_fact, preference, habit, goal, boundary)
+- **Behavior Tracking**: Automatically tracks task completions, reminder patterns, etc.
+- **Habit Aggregation**: Daily analysis of behavior patterns
+- **Transparent**: All memories visible and editable in Settings
+
+See [AI_MEMORY_GUIDE.md](AI_MEMORY_GUIDE.md) for detailed documentation.
 
 ## License
 

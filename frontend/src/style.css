@@ -124,3 +124,61 @@ body {
   color: #4b5563;
 }
 
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 0.75rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .flex {
+    flex-wrap: wrap;
+  }
+
+  .navbar {
+    padding: 0.75rem 0;
+  }
+
+  .navbar h1 {
+    font-size: 1.25rem;
+  }
+
+  .navbar > div > div {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .navbar a,
+  .navbar button {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0.5rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+  }
+
+  .btn {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .card {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+}
+

@@ -10,6 +10,7 @@
             <router-link to="/notes">Notes</router-link>
             <router-link to="/passwords">Passwords</router-link>
             <router-link to="/chat">AI Chat</router-link>
+            <router-link to="/settings">Settings</router-link>
             <button @click="handleExport" class="btn btn-secondary">Export</button>
             <button @click="handleLogout" class="btn btn-secondary">Logout</button>
           </div>
@@ -83,6 +84,39 @@ const handleExport = async () => {
 .navbar a.router-link-active {
   color: #4f46e5;
   background: #eef2ff;
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0.75rem 0;
+  }
+
+  .navbar h1 {
+    font-size: 1.25rem;
+  }
+
+  .navbar > div > div {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .navbar a,
+  .navbar button {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .navbar h1 {
+    font-size: 1.125rem;
+  }
+
+  .navbar a,
+  .navbar button {
+    font-size: 0.8125rem;
+    padding: 0.5rem;
+  }
 }
 </style>
 

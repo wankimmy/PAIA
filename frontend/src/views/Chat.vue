@@ -5,12 +5,12 @@
       <button @click="showVoiceModal = true" class="btn btn-primary">Voice Command</button>
     </div>
 
-    <div class="card" style="height: 500px; display: flex; flex-direction: column;">
+    <div class="card chat-container">
       <div ref="messagesContainer" class="messages" style="flex: 1; overflow-y: auto; margin-bottom: 1rem;">
-        <div v-for="(msg, index) in messages" :key="index" class="message" :class="{ 'user': msg.role === 'user', 'assistant': msg.role === 'assistant' }">
-          <div class="message-content">
+        <div v-for="(msg, index) in messages" :key="index" class="message" :class="{ 'user': msg.role === 'user', 'assistant': msg.role === 'assistant', 'system': msg.role === 'system' }">
+          <div class="message-content" :class="{ 'action-message': msg.isAction }">
             <strong v-if="msg.role === 'user'">You:</strong>
-            <strong v-else>Assistant:</strong>
+            <strong v-else-if="msg.role === 'assistant'">Assistant:</strong>
             <p style="margin-top: 0.5rem; white-space: pre-wrap;">{{ msg.content }}</p>
           </div>
         </div>
@@ -83,11 +83,42 @@ const audioChunks = ref([])
 const transcribedText = ref('')
 const voiceResult = ref(null)
 
-onMounted(() => {
-  messages.value.push({
-    role: 'assistant',
-    content: 'Hello! I\'m your personal AI assistant. How can I help you today?'
-  })
+onMounted(async () => {
+  // Load user preferences for personalized greeting
+  try {
+    const prefsResponse = await api.get('/preferences')
+    const prefs = prefsResponse.data
+    
+    let greeting = 'Hello! I\'m your personal AI assistant. How can I help you today?'
+    
+    if (prefs.preferences?.name) {
+      greeting = `Hello ${prefs.preferences.name}! I'm your personal AI assistant. How can I help you today?`
+    }
+    
+    if (prefs.onboarding_completed && prefs.preferences) {
+      const goal = prefs.preferences.primary_goal
+      if (goal) {
+        const goalMessages = {
+          productivity: 'I see you\'re focused on productivity. I can help you manage tasks, set reminders, and stay organized!',
+          organization: 'Great! I\'ll help you stay organized and plan your activities effectively.',
+          memory: 'I\'m here to help you remember important information and keep notes organized.',
+          security: 'I\'ll help you securely manage your passwords and sensitive information.',
+          all: 'Perfect! I\'m ready to help you with tasks, notes, passwords, and everything else you need.'
+        }
+        greeting += ` ${goalMessages[goal] || ''}`
+      }
+    }
+    
+    messages.value.push({
+      role: 'assistant',
+      content: greeting
+    })
+  } catch (error) {
+    messages.value.push({
+      role: 'assistant',
+      content: 'Hello! I\'m your personal AI assistant. How can I help you today?'
+    })
+  }
 })
 
 const sendMessage = async () => {
@@ -111,6 +142,34 @@ const sendMessage = async () => {
       role: 'assistant',
       content: response.data.response
     })
+
+    // Show executed actions
+    if (response.data.actions_executed) {
+      const actions = response.data.actions_executed
+      const actionMessages = []
+      
+      if (actions.tasks?.length > 0) {
+        actionMessages.push(`✅ Created ${actions.tasks.length} task(s)`)
+      }
+      if (actions.notes?.length > 0) {
+        actionMessages.push(`📝 Created ${actions.notes.length} note(s)`)
+      }
+      if (actions.passwords?.length > 0) {
+        actionMessages.push(`🔐 Created ${actions.passwords.length} password entry/entries`)
+      }
+
+      if (actionMessages.length > 0) {
+        messages.value.push({
+          role: 'system',
+          content: actionMessages.join('\n'),
+          isAction: true
+        })
+        // Refresh data if actions were executed
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('data-refresh'))
+        }, 500)
+      }
+    }
 
     scrollToBottom()
   } catch (error) {
@@ -236,6 +295,20 @@ const closeVoiceModal = () => {
   max-width: 70%;
 }
 
+.message.system .message-content {
+  display: inline-block;
+  background: #d1fae5;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  max-width: 70%;
+  border-left: 3px solid #10b981;
+}
+
+.message.system .message-content.action-message {
+  background: #dbeafe;
+  border-left-color: #3b82f6;
+}
+
 .modal {
   position: fixed;
   top: 0;
@@ -257,6 +330,32 @@ const closeVoiceModal = () => {
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+}
+
+.chat-container {
+  height: 500px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .chat-container {
+    height: calc(100vh - 200px);
+    min-height: 400px;
+  }
+
+  .message.user .message-content,
+  .message.assistant .message-content,
+  .message.system .message-content {
+    max-width: 85%;
+  }
+}
+
+@media (max-width: 640px) {
+  .chat-container {
+    height: calc(100vh - 180px);
+    min-height: 350px;
+  }
 }
 </style>
 

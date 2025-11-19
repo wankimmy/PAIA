@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Reminder;
+use App\Services\AiMemoryService;
 use App\Services\WebPushService;
 use Illuminate\Console\Command;
 
@@ -14,6 +15,7 @@ class SendReminders extends Command
     public function handle(): int
     {
         $webPush = app(WebPushService::class);
+        $memoryService = app(AiMemoryService::class);
 
         // Get reminders that are due and not yet sent
         $reminders = Reminder::where('remind_at', '<=', now())
@@ -59,6 +61,14 @@ class SendReminders extends Command
 
             // Mark as sent
             $reminder->update(['sent_at' => now()]);
+            
+            // Record interaction
+            $memoryService->recordInteraction($user, 'reminder_fired', [
+                'reminder_id' => $reminder->id,
+                'task_id' => $reminder->task_id,
+                'remind_at_hour' => $reminder->remind_at->hour,
+            ]);
+            
             $sentCount++;
         }
 
