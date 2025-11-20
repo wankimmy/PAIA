@@ -244,7 +244,7 @@ const submitAnswer = async () => {
     }
 
     // Small delay to show loading state
-    await new Promise(resolve => setTimeout(resolve, 300))
+    await new Promise(resolve => setTimeout(resolve, 100))
 
     if (currentQuestionIndex.value < questions.value.length - 1) {
       // Move to next question

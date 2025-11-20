@@ -309,6 +309,11 @@ const minDateTime = computed(() => {
   return `${year}-${month}-${day}T${hours}:${minutes}`
 })
 
+// Helper function to format date components as "YYYY-MM-DDTHH:MM"
+const formatYMDHM = (year, month, day, hours, minutes) => {
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
 // Format datetime for datetime-local input (converts UTC to user's timezone)
 const formatDateTimeLocal = (dateString) => {
   if (!dateString) return ''
@@ -332,7 +337,7 @@ const formatDateTimeLocal = (dateString) => {
     const day = parts.find(p => p.type === 'day').value
     const hours = parts.find(p => p.type === 'hour').value
     const minutes = parts.find(p => p.type === 'minute').value
-    return `${year}-${month}-${day}T${hours}:${minutes}`
+    return formatYMDHM(year, month, day, hours, minutes)
   } else {
     // Use browser's local timezone
     const year = date.getFullYear()
@@ -340,7 +345,41 @@ const formatDateTimeLocal = (dateString) => {
     const day = String(date.getDate()).padStart(2, '0')
     const hours = String(date.getHours()).padStart(2, '0')
     const minutes = String(date.getMinutes()).padStart(2, '0')
-    return `${year}-${month}-${day}T${hours}:${minutes}`
+    return formatYMDHM(year, month, day, hours, minutes)
+  }
+}
+
+// Format Date object directly for datetime-local input (avoids UTC conversion)
+const formatDateToLocal = (date) => {
+  if (!date) return ''
+  
+  // Convert to user's timezone if specified, otherwise use browser timezone
+  if (userTimezone.value && userTimezone.value !== 'UTC') {
+    // Use Intl API to get date components in user's timezone
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: userTimezone.value,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+    const parts = formatter.formatToParts(date)
+    const year = parts.find(p => p.type === 'year').value
+    const month = parts.find(p => p.type === 'month').value
+    const day = parts.find(p => p.type === 'day').value
+    const hours = parts.find(p => p.type === 'hour').value
+    const minutes = parts.find(p => p.type === 'minute').value
+    return formatYMDHM(year, month, day, hours, minutes)
+  } else {
+    // Use browser's local timezone
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    return formatYMDHM(year, month, day, hours, minutes)
   }
 }
 
@@ -518,13 +557,6 @@ const saveMeeting = async () => {
     const data = { ...meetingForm.value }
     // datetime-local input gives us local time, send as-is (backend will convert to UTC)
     // Format: YYYY-MM-DDTHH:mm (local time)
-    if (data.start_time) {
-      // Ensure it's in the correct format for backend
-      data.start_time = data.start_time
-    }
-    if (data.end_time) {
-      data.end_time = data.end_time
-    }
     if (!data.tag_id) {
       delete data.tag_id
     }
@@ -654,7 +686,7 @@ const openAddModal = () => {
   now.setMinutes(roundedMinutes)
   now.setSeconds(0)
   now.setMilliseconds(0)
-  meetingForm.value.start_time = formatDateTimeLocal(now.toISOString())
+  meetingForm.value.start_time = formatDateToLocal(now)
 }
 
 const closeReminderModal = () => {

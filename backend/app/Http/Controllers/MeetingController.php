@@ -48,10 +48,10 @@ class MeetingController extends Controller
 
         // Convert datetime-local input (local timezone) to UTC for storage
         $user = $request->user();
-        $timezone = ($user->profile && $user->profile->timezone) ? $user->profile->timezone : config('app.timezone', 'UTC');
+        $timezone = $this->getUserTimezone($user);
         
-        $startTime = $request->start_time ? Carbon::parse($request->start_time, $timezone)->utc() : null;
-        $endTime = $request->end_time ? Carbon::parse($request->end_time, $timezone)->utc() : null;
+        $startTime = $this->convertToUtc($request->start_time, $timezone);
+        $endTime = $this->convertToUtc($request->end_time, $timezone);
 
         $meeting = $request->user()->meetings()->create([
             'title' => $request->title,
@@ -105,18 +105,18 @@ class MeetingController extends Controller
 
         // Convert datetime-local input (local timezone) to UTC for storage
         $user = $request->user();
-        $timezone = $user->profile && $user->profile->timezone ? $user->profile->timezone : config('app.timezone', 'UTC');
+        $timezone = $this->getUserTimezone($user);
         
         $updateData = $request->only([
             'title', 'description', 'location', 'attendees', 'status', 'tag_id'
         ]);
         
         if ($request->has('start_time')) {
-            $updateData['start_time'] = Carbon::parse($request->start_time, $timezone)->utc();
+            $updateData['start_time'] = $this->convertToUtc($request->start_time, $timezone);
         }
         
         if ($request->has('end_time') && $request->end_time) {
-            $updateData['end_time'] = Carbon::parse($request->end_time, $timezone)->utc();
+            $updateData['end_time'] = $this->convertToUtc($request->end_time, $timezone);
         }
 
         $meeting->update($updateData);
@@ -134,6 +134,31 @@ class MeetingController extends Controller
         return response()->json(['message' => 'Meeting deleted']);
     }
 
+    /**
+     * Get the user's timezone, falling back to the app timezone or UTC.
+     *
+     * @param \App\Models\User $user
+     * @return string
+     */
+    private function getUserTimezone($user)
+    {
+        return ($user->profile && $user->profile->timezone) 
+            ? $user->profile->timezone 
+            : config('app.timezone', 'UTC');
+    }
+
+    /**
+     * Convert an optional datetime string from the given timezone to UTC.
+     *
+     * @param string|null $datetimeString
+     * @param string $timezone
+     * @return \Carbon\Carbon|null
+     */
+    private function convertToUtc($datetimeString, $timezone)
+    {
+        return $datetimeString ? Carbon::parse($datetimeString, $timezone)->utc() : null;
+    }
+
     public function addReminder(Request $request, $id)
     {
         $meeting = $request->user()->meetings()->findOrFail($id);
@@ -148,9 +173,9 @@ class MeetingController extends Controller
 
         // Convert datetime-local input (local timezone) to UTC for storage
         $user = $request->user();
-        $timezone = $user->profile && $user->profile->timezone ? $user->profile->timezone : config('app.timezone', 'UTC');
+        $timezone = $this->getUserTimezone($user);
         
-        $remindAt = Carbon::parse($request->remind_at, $timezone)->utc();
+        $remindAt = $this->convertToUtc($request->remind_at, $timezone);
 
         $reminder = $meeting->reminders()->create([
             'remind_at' => $remindAt,

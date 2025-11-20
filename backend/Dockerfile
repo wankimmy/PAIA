@@ -26,9 +26,6 @@ WORKDIR /var/www/html
 # Copy application files
 COPY . /var/www/html
 
-# Ensure entrypoint script is executable (will be available via volume mount)
-RUN if [ -f docker-entrypoint.sh ]; then chmod +x docker-entrypoint.sh; fi
-
 # Also copy to system location as backup (outside volume mounts)
 # Convert line endings to Unix (LF) and set executable
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

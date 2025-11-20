@@ -15,9 +15,9 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       ollama:
-        condition: service_started
+        condition: service_healthy
       mailpit:
-        condition: service_started
+        condition: service_healthy
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
@@ -97,6 +97,12 @@ services:
     runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # Mailpit - Open-source email testing tool
   mailpit:
@@ -110,6 +116,12 @@ services:
     environment:
       - MP_SMTP_BIND_ADDR=0.0.0.0:1025
       - MP_WEB_BIND_ADDR=0.0.0.0:8025
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8025"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
 networks:
   paia-network:

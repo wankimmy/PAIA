@@ -4,6 +4,6 @@
 # Shell scripts - always use LF line endings
 *.sh text eol=lf
 
-# Ensure shell scripts are executable
+# Include shell scripts in language statistics
 *.sh linguist-generated=false
 
