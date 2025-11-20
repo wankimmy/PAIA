@@ -5,6 +5,17 @@
       <button @click="showAddModal = true" class="btn btn-primary">Add Tag</button>
     </div>
 
+    <!-- Search Filter -->
+    <div v-if="!loading && tags.length > 0" class="mb-4">
+      <input
+        v-model="searchQuery"
+        type="text"
+        class="input"
+        placeholder="Search tags by name or description..."
+        style="max-width: 500px;"
+      />
+    </div>
+
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
       <div class="spinner"></div>
@@ -13,10 +24,13 @@
     
     <!-- Table View -->
     <div v-else class="card">
-      <div v-if="tags.length === 0" class="text-center text-gray-600 py-8">
-        No tags yet. Create one to get started!
+      <div v-if="filteredTags.length === 0" class="text-center text-gray-600 py-8">
+        <span v-if="tags.length === 0">No tags yet. Create one to get started!</span>
+        <span v-else>No tags match your search.</span>
       </div>
-      <table v-else class="data-table">
+      <template v-else>
+        <!-- Desktop Table View -->
+        <table class="data-table desktop-table">
         <thead>
           <tr>
             <th>Name</th>
@@ -27,7 +41,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="tag in tags" :key="tag.id">
+          <tr v-for="tag in filteredTags" :key="tag.id">
             <td>
               <strong>{{ tag.name }}</strong>
             </td>
@@ -64,6 +78,47 @@
           </tr>
         </tbody>
       </table>
+      
+      <!-- Mobile Card View -->
+      <div class="mobile-cards">
+        <div v-for="tag in filteredTags" :key="tag.id" class="mobile-card">
+          <div class="mobile-card-header">
+            <div class="flex items-center gap-2">
+              <span 
+                class="tag-badge-preview" 
+                :style="{ backgroundColor: tag.color || '#e5e7eb', color: '#1f2937' }"
+              >
+                {{ tag.name }}
+              </span>
+            </div>
+          </div>
+          <div class="mobile-card-field">
+            <span class="field-label">Color:</span>
+            <div class="flex items-center gap-2">
+              <input 
+                type="color" 
+                :value="tag.color || '#3b82f6'" 
+                disabled
+                class="color-preview"
+              />
+              <span class="text-gray-600">{{ tag.color || '#3b82f6' }}</span>
+            </div>
+          </div>
+          <div v-if="tag.description" class="mobile-card-field">
+            <span class="field-label">Description:</span>
+            <span class="text-gray-600">{{ tag.description }}</span>
+          </div>
+          <div class="mobile-card-field">
+            <span class="field-label">Usage:</span>
+            <span class="text-gray-600">{{ getTagUsage(tag.id) }} items</span>
+          </div>
+          <div class="mobile-card-actions">
+            <button @click="editTag(tag)" class="btn btn-secondary btn-sm">Edit</button>
+            <button @click="deleteTag(tag.id)" class="btn btn-danger btn-sm">Delete</button>
+          </div>
+        </div>
+      </div>
+      </template>
     </div>
 
     <!-- Add/Edit Modal -->
@@ -119,10 +174,26 @@ const loading = ref(false)
 const saving = ref(false)
 const showAddModal = ref(false)
 const editingTag = ref(null)
+const searchQuery = ref('')
 const tagForm = ref({
   name: '',
   color: '#3b82f6',
   description: ''
+})
+
+const filteredTags = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return tags.value
+  }
+  
+  const query = searchQuery.value.toLowerCase().trim()
+  return tags.value.filter(tag => {
+    const name = (tag.name || '').toLowerCase()
+    const description = (tag.description || '').toLowerCase()
+    
+    return name.includes(query) || 
+           description.includes(query)
+  })
 })
 
 onMounted(() => {
@@ -322,14 +393,72 @@ textarea.input {
   100% { transform: rotate(360deg); }
 }
 
+/* Mobile Responsive */
+.desktop-table {
+  display: table;
+}
+
+.mobile-cards {
+  display: none;
+}
+
+.mobile-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mobile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.mobile-card-field {
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mobile-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
 @media (max-width: 768px) {
-  .data-table {
-    font-size: 0.875rem;
+  .desktop-table {
+    display: none;
   }
   
-  .data-table th,
-  .data-table td {
-    padding: 0.5rem;
+  .mobile-cards {
+    display: block;
+  }
+  
+  .flex.items-center.justify-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .flex.items-center.justify-between h2 {
+    margin: 0;
   }
 }
 </style>

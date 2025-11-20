@@ -3,7 +3,7 @@
     <!-- Header with Add Meeting Button -->
     <div class="flex items-center justify-between mb-4">
       <h2>Meetings & Calendar</h2>
-      <button @click="showAddModal = true" class="btn btn-primary">Add Meeting</button>
+      <button @click="openAddModal" class="btn btn-primary">Add Meeting</button>
     </div>
 
     <!-- Loading State -->
@@ -53,7 +53,25 @@
     <!-- Selected Day Meetings List -->
     <div v-if="selectedDayMeetings.length > 0" class="card mt-4">
       <h3 class="mb-4">Meetings on {{ selectedDayFormatted }}</h3>
-      <table class="data-table">
+      
+      <!-- Search Filter -->
+      <div class="mb-4">
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="input"
+          placeholder="Search meetings by title, location, tag, or status..."
+          style="max-width: 500px;"
+        />
+      </div>
+      
+      <div v-if="filteredSelectedDayMeetings.length === 0" class="text-center text-gray-600 py-4">
+        No meetings match your search.
+      </div>
+      
+      <template v-else>
+        <!-- Desktop Table View -->
+        <table class="data-table desktop-table">
         <thead>
           <tr>
             <th>Title</th>
@@ -65,7 +83,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="meeting in selectedDayMeetings" :key="meeting.id">
+          <tr v-for="meeting in filteredSelectedDayMeetings" :key="meeting.id">
             <td><strong>{{ meeting.title }}</strong></td>
             <td>
               <span class="text-gray-600">
@@ -95,6 +113,39 @@
           </tr>
         </tbody>
       </table>
+      
+      <!-- Mobile Card View -->
+      <div class="mobile-cards">
+        <div v-for="meeting in filteredSelectedDayMeetings" :key="meeting.id" class="mobile-card">
+          <div class="mobile-card-header">
+            <strong>{{ meeting.title }}</strong>
+            <span :class="getStatusClass(meeting.status)">{{ meeting.status }}</span>
+          </div>
+          <div class="mobile-card-field">
+            <span class="field-label">Time:</span>
+            <span class="text-gray-600">
+              {{ formatTime(meeting.start_time) }}
+              <span v-if="meeting.end_time"> - {{ formatTime(meeting.end_time) }}</span>
+            </span>
+          </div>
+          <div v-if="meeting.location" class="mobile-card-field">
+            <span class="field-label">Location:</span>
+            <span class="text-gray-600">{{ meeting.location }}</span>
+          </div>
+          <div v-if="meeting.tag" class="mobile-card-field">
+            <span class="field-label">Tag:</span>
+            <span class="tag-badge" :style="{ backgroundColor: meeting.tag.color || '#e5e7eb', color: '#1f2937' }">
+              {{ meeting.tag.name }}
+            </span>
+          </div>
+          <div class="mobile-card-actions">
+            <button @click="editMeeting(meeting)" class="btn btn-secondary btn-sm">Edit</button>
+            <button @click="addReminder(meeting)" class="btn btn-secondary btn-sm">Reminder</button>
+            <button @click="deleteMeeting(meeting)" class="btn btn-danger btn-sm">Delete</button>
+          </div>
+        </div>
+      </div>
+      </template>
     </div>
 
     <!-- Add/Edit Modal -->
@@ -112,11 +163,22 @@
           </div>
           <div class="mb-4">
             <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Start Time *</label>
-            <input v-model="meetingForm.start_time" type="datetime-local" class="input" required />
+            <input 
+              v-model="meetingForm.start_time" 
+              type="datetime-local" 
+              class="input" 
+              :min="minDateTime"
+              required 
+            />
           </div>
           <div class="mb-4">
             <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">End Time</label>
-            <input v-model="meetingForm.end_time" type="datetime-local" class="input" />
+            <input 
+              v-model="meetingForm.end_time" 
+              type="datetime-local" 
+              class="input"
+              :min="meetingForm.start_time || minDateTime"
+            />
           </div>
           <div class="mb-4">
             <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Location</label>
@@ -160,7 +222,14 @@
         <form @submit.prevent="saveReminder">
           <div class="mb-4">
             <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Remind At *</label>
-            <input v-model="reminderForm.remind_at" type="datetime-local" class="input" required />
+            <input 
+              v-model="reminderForm.remind_at" 
+              type="datetime-local" 
+              class="input" 
+              :max="selectedMeeting?.start_time ? formatDateTimeLocal(selectedMeeting.start_time) : ''"
+              :min="minDateTime"
+              required 
+            />
             <p class="text-sm text-gray-500 mt-1">Must be before the meeting start time</p>
           </div>
           <div class="flex gap-2">
@@ -223,8 +292,57 @@ const editingMeeting = ref(null)
 const selectedMeeting = ref(null)
 const currentDate = ref(new Date())
 const selectedDay = ref(null)
+const userTimezone = ref(null)
+const searchQuery = ref('')
 
 const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+// Get minimum datetime (current time) for date inputs
+const minDateTime = computed(() => {
+  const now = new Date()
+  // Format as YYYY-MM-DDTHH:mm for datetime-local input
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+})
+
+// Format datetime for datetime-local input (converts UTC to user's timezone)
+const formatDateTimeLocal = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  
+  // Convert UTC to user's timezone if specified, otherwise use browser timezone
+  if (userTimezone.value && userTimezone.value !== 'UTC') {
+    // Use Intl API to get date components in user's timezone
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: userTimezone.value,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+    const parts = formatter.formatToParts(date)
+    const year = parts.find(p => p.type === 'year').value
+    const month = parts.find(p => p.type === 'month').value
+    const day = parts.find(p => p.type === 'day').value
+    const hours = parts.find(p => p.type === 'hour').value
+    const minutes = parts.find(p => p.type === 'minute').value
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  } else {
+    // Use browser's local timezone
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  }
+}
 
 const currentMonthYear = computed(() => {
   return currentDate.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -243,6 +361,25 @@ const selectedDayFormatted = computed(() => {
 const selectedDayMeetings = computed(() => {
   if (!selectedDay.value) return []
   return selectedDay.value.meetings
+})
+
+const filteredSelectedDayMeetings = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return selectedDayMeetings.value
+  }
+  
+  const query = searchQuery.value.toLowerCase().trim()
+  return selectedDayMeetings.value.filter(meeting => {
+    const title = (meeting.title || '').toLowerCase()
+    const location = (meeting.location || '').toLowerCase()
+    const status = (meeting.status || '').toLowerCase()
+    const tagName = (meeting.tag?.name || '').toLowerCase()
+    
+    return title.includes(query) || 
+           location.includes(query) || 
+           status.includes(query) || 
+           tagName.includes(query)
+  })
 })
 
 const calendarDays = computed(() => {
@@ -283,9 +420,20 @@ const calendarDays = computed(() => {
 })
 
 onMounted(() => {
+  loadUserProfile()
   loadMeetings()
   loadTags()
 })
+
+const loadUserProfile = async () => {
+  try {
+    const response = await api.get('/profile')
+    userTimezone.value = response.data.timezone || 'UTC'
+  } catch (error) {
+    console.error('Failed to load user profile:', error)
+    userTimezone.value = 'UTC'
+  }
+}
 
 const loadMeetings = async () => {
   loading.value = true
@@ -331,7 +479,13 @@ const viewMeeting = (meeting) => {
 
 const formatTime = (dateString) => {
   if (!dateString) return ''
-  return new Date(dateString).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  const date = new Date(dateString)
+  const options = { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    timeZone: userTimezone.value || undefined
+  }
+  return date.toLocaleTimeString('en-US', options)
 }
 
 const getStatusClass = (status) => {
@@ -362,11 +516,14 @@ const saveMeeting = async () => {
   saving.value = true
   try {
     const data = { ...meetingForm.value }
+    // datetime-local input gives us local time, send as-is (backend will convert to UTC)
+    // Format: YYYY-MM-DDTHH:mm (local time)
     if (data.start_time) {
-      data.start_time = new Date(data.start_time).toISOString()
+      // Ensure it's in the correct format for backend
+      data.start_time = data.start_time
     }
     if (data.end_time) {
-      data.end_time = new Date(data.end_time).toISOString()
+      data.end_time = data.end_time
     }
     if (!data.tag_id) {
       delete data.tag_id
@@ -395,8 +552,8 @@ const editMeeting = (meeting) => {
   meetingForm.value = {
     title: meeting.title,
     description: meeting.description || '',
-    start_time: meeting.start_time ? new Date(meeting.start_time).toISOString().slice(0, 16) : '',
-    end_time: meeting.end_time ? new Date(meeting.end_time).toISOString().slice(0, 16) : '',
+    start_time: meeting.start_time ? formatDateTimeLocal(meeting.start_time) : '',
+    end_time: meeting.end_time ? formatDateTimeLocal(meeting.end_time) : '',
     location: meeting.location || '',
     attendees: meeting.attendees || '',
     status: meeting.status,
@@ -456,8 +613,9 @@ const addReminder = (meeting) => {
 const saveReminder = async () => {
   savingReminder.value = true
   try {
+    // datetime-local input gives us local time, send as-is (backend will convert to UTC)
     const data = {
-      remind_at: new Date(reminderForm.value.remind_at).toISOString()
+      remind_at: reminderForm.value.remind_at
     }
     await api.post(`/meetings/${selectedMeeting.value.id}/reminders`, data)
     toast.success('Reminder added successfully')
@@ -484,6 +642,19 @@ const closeModal = () => {
     status: 'scheduled',
     tag_id: null
   }
+}
+
+// Set default start_time when opening add modal
+const openAddModal = () => {
+  showAddModal.value = true
+  // Set default start time to current time (rounded to next 15 minutes)
+  const now = new Date()
+  const minutes = now.getMinutes()
+  const roundedMinutes = Math.ceil(minutes / 15) * 15
+  now.setMinutes(roundedMinutes)
+  now.setSeconds(0)
+  now.setMilliseconds(0)
+  meetingForm.value.start_time = formatDateTimeLocal(now.toISOString())
 }
 
 const closeReminderModal = () => {
@@ -690,7 +861,65 @@ textarea.input {
   100% { transform: rotate(360deg); }
 }
 
+/* Mobile Responsive */
+.desktop-table {
+  display: table;
+}
+
+.mobile-cards {
+  display: none;
+}
+
+.mobile-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mobile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.mobile-card-field {
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mobile-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 768px) {
+  .desktop-table {
+    display: none;
+  }
+  
+  .mobile-cards {
+    display: block;
+  }
+  
   .calendar-grid {
     gap: 0.25rem;
   }
@@ -707,6 +936,16 @@ textarea.input {
   .calendar-meeting-item {
     font-size: 0.625rem;
     padding: 0.125rem 0.25rem;
+  }
+  
+  .flex.items-center.justify-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .flex.items-center.justify-between h2 {
+    margin: 0;
   }
 }
 </style>

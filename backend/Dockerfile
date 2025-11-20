@@ -23,12 +23,17 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# Copy existing application directory contents
+# Copy application files
 COPY . /var/www/html
+
+# Ensure entrypoint script is executable (will be available via volume mount)
+RUN if [ -f docker-entrypoint.sh ]; then chmod +x docker-entrypoint.sh; fi
+
+# Also copy to system location as backup (outside volume mounts)
+# Convert line endings to Unix (LF) and set executable
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && \
+    chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set initial permissions
 RUN chown -R www-data:www-data /var/www/html \
@@ -38,6 +43,6 @@ RUN chown -R www-data:www-data /var/www/html \
 EXPOSE 9000
 
 # Use entrypoint script
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "/usr/local/bin/docker-entrypoint.sh"]
 CMD ["php-fpm"]
 

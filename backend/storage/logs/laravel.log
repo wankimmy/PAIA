@@ -58,3 +58,5 @@
 #55 /var/www/html/public/index.php(17): Illuminate\\Foundation\\Application->handleRequest(Object(Illuminate\\Http\\Request))
 #56 {main}
 "} 
+[2025-11-20 11:11:40] local.ERROR: Ollama connection exception {"url":"http://ollama:11434","error":"cURL error 28: Operation timed out after 120002 milliseconds with 0 bytes received (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for http://ollama:11434/api/chat"} 
+[2025-11-20 11:14:40] local.ERROR: Memory extraction error {"error":"cURL error 28: Operation timed out after 60002 milliseconds with 0 bytes received (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for http://ollama:11434/api/chat"} 

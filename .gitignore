@@ -2,8 +2,10 @@
 backend/vendor/
 backend/.env
 backend/storage/*.key
+backend/storage/*.log
 backend/database/*.sqlite
 backend/database/*.sqlite-journal
+backend/database/database.sqlite
 
 # Frontend
 frontend/node_modules/

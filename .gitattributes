@@ -1,0 +1,9 @@
+# Auto-detect text files and perform LF normalization
+* text=auto
+
+# Shell scripts - always use LF line endings
+*.sh text eol=lf
+
+# Ensure shell scripts are executable
+*.sh linguist-generated=false
+

@@ -14,8 +14,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - ollama
-      - mailpit
+      ollama:
+        condition: service_started
+      mailpit:
+        condition: service_started
     environment:
       - APP_ENV=local
       - APP_DEBUG=true

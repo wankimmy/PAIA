@@ -46,10 +46,25 @@
             </div>
             
             <div class="actions">
-              <button @click="submitAnswer" class="btn btn-primary" :disabled="!currentAnswer.trim()">
-                {{ currentQuestionIndex === questions.length - 1 ? 'Finish' : 'Next' }}
+              <button 
+                @click="submitAnswer" 
+                class="btn btn-primary" 
+                :disabled="!canProceed || isProcessing"
+              >
+                <span v-if="isProcessing" class="btn-loading">
+                  <span class="spinner-small"></span>
+                  {{ currentQuestionIndex === questions.length - 1 ? 'Finishing...' : 'Loading...' }}
+                </span>
+                <span v-else>
+                  {{ currentQuestionIndex === questions.length - 1 ? 'Finish' : 'Next' }}
+                </span>
               </button>
-              <button v-if="currentQuestionIndex > 0" @click="previousQuestion" class="btn btn-secondary">
+              <button 
+                v-if="currentQuestionIndex > 0" 
+                @click="previousQuestion" 
+                class="btn btn-secondary"
+                :disabled="isProcessing"
+              >
                 Back
               </button>
             </div>
@@ -71,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import api from '../services/api'
 
 const props = defineProps({
@@ -88,6 +103,7 @@ const currentQuestionIndex = ref(0)
 const currentAnswer = ref('')
 const answers = ref({})
 const answerInput = ref(null)
+const isProcessing = ref(false)
 
 const questions = ref([
   {
@@ -103,22 +119,10 @@ const questions = ref([
     placeholder: 'e.g., Alex, Sam, Luna, or any name you like'
   },
   {
-    key: 'pronouns',
-    question: 'What are your pronouns? (optional)',
-    type: 'select',
-    options: [
-      { value: 'she/her', label: 'She/Her' },
-      { value: 'he/him', label: 'He/Him' },
-      { value: 'they/them', label: 'They/Them' },
-      { value: 'prefer not to say', label: 'Prefer not to say' }
-    ],
-    optional: true
-  },
-  {
     key: 'bio',
-    question: 'Tell me a bit about yourself (optional)',
+    question: 'Tell me a bit about yourself',
     type: 'textarea',
-    placeholder: 'e.g., "I\'m a software engineer in Malaysia..."',
+    placeholder: 'e.g., "I\'m a software engineer in Malaysia..." (optional - you can skip this)',
     optional: true
   },
   {
@@ -182,9 +186,9 @@ const questions = ref([
   },
   {
     key: 'boundaries',
-    question: 'Any topics you prefer to avoid? (optional)',
+    question: 'Any topics you prefer to avoid?',
     type: 'textarea',
-    placeholder: 'e.g., "I prefer not to discuss work stress"',
+    placeholder: 'e.g., "I prefer not to discuss work stress" (optional - you can skip this)',
     optional: true
   }
 ])
@@ -203,33 +207,65 @@ const focusInput = () => {
   })
 }
 
+const canProceed = computed(() => {
+  const question = currentQuestion.value
+  if (question.optional) {
+    return true // Optional questions can be skipped
+  }
+  if (question.type === 'select') {
+    return !!currentAnswer.value // Select requires a choice
+  }
+  return !!currentAnswer.value.trim() // Text/textarea requires non-empty input
+})
+
 const selectOption = (value) => {
   currentAnswer.value = value
 }
 
 const submitAnswer = async () => {
-  // Allow empty answers for optional questions
-  if (!currentQuestion.value.optional && !currentAnswer.value.trim() && currentQuestion.value.type !== 'select') {
+  if (!canProceed.value || isProcessing.value) {
     return
   }
 
-  if (currentAnswer.value.trim() || currentQuestion.value.type === 'select') {
-    answers.value[currentQuestion.value.key] = currentAnswer.value.trim() || currentAnswer.value
-  }
+  isProcessing.value = true
 
-  if (currentQuestionIndex.value < questions.value.length - 1) {
-    currentQuestionIndex.value++
-    currentQuestion.value = questions.value[currentQuestionIndex.value]
-    currentAnswer.value = answers.value[currentQuestion.value.key] || ''
-    focusInput()
-  } else {
-    // Save preferences
-    await savePreferences()
+  try {
+    // Save answer (empty for optional questions is allowed)
+    if (currentQuestion.value.optional) {
+      // Optional: save if provided, otherwise save empty string
+      answers.value[currentQuestion.value.key] = currentAnswer.value.trim() || ''
+    } else {
+      // Required: must have value
+      if (currentQuestion.value.type === 'select') {
+        answers.value[currentQuestion.value.key] = currentAnswer.value
+      } else {
+        answers.value[currentQuestion.value.key] = currentAnswer.value.trim()
+      }
+    }
+
+    // Small delay to show loading state
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    if (currentQuestionIndex.value < questions.value.length - 1) {
+      // Move to next question
+      currentQuestionIndex.value++
+      currentQuestion.value = questions.value[currentQuestionIndex.value]
+      currentAnswer.value = answers.value[currentQuestion.value.key] || ''
+      focusInput()
+    } else {
+      // Last question - save preferences
+      await savePreferences()
+    }
+  } catch (error) {
+    console.error('Error in submitAnswer:', error)
+    alert('An error occurred. Please try again.')
+  } finally {
+    isProcessing.value = false
   }
 }
 
 const previousQuestion = () => {
-  if (currentQuestionIndex.value > 0) {
+  if (currentQuestionIndex.value > 0 && !isProcessing.value) {
     currentQuestionIndex.value--
     currentQuestion.value = questions.value[currentQuestionIndex.value]
     currentAnswer.value = answers.value[currentQuestion.value.key] || ''
@@ -243,7 +279,6 @@ const savePreferences = async () => {
     const profileData = {
       nickname: answers.value.nickname,
       ai_name: answers.value.ai_name,
-      pronouns: answers.value.pronouns,
       bio: answers.value.bio,
       timezone: answers.value.timezone,
       preferred_tone: answers.value.preferred_tone,
@@ -455,6 +490,23 @@ const savePreferences = async () => {
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 1rem;
+}
+
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+.btn-loading {
+  display: inline-flex;
+  align-items: center;
 }
 
 @keyframes spin {

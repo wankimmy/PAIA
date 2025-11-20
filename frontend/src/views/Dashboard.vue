@@ -5,7 +5,10 @@
     <div v-if="!showOnboarding">
       <h2 style="margin-bottom: 1.5rem;">Dashboard</h2>
 
-      <div v-if="loading" class="text-center">Loading...</div>
+      <div v-if="loading" class="loading-container">
+        <div class="spinner"></div>
+        <p class="loading-text">Loading dashboard data...</p>
+      </div>
 
     <div v-else>
       <!-- Today's Tasks -->
@@ -194,6 +197,34 @@ const getStatusClass = (status) => {
 .status-badge.cancelled {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  min-height: 300px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #7367f0;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.loading-text {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
 

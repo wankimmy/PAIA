@@ -43,6 +43,32 @@ if [ -f ".env" ]; then
     fi
 fi
 
+# Ensure Ollama model is installed (runs in background, non-blocking)
+if [ ! -z "${OLLAMA_BASE_URL}" ] && [ ! -z "${OLLAMA_MODEL}" ]; then
+    (
+        echo "Checking Ollama model ${OLLAMA_MODEL} installation..."
+        MAX_RETRIES=30
+        RETRY_COUNT=0
+        until curl -f "${OLLAMA_BASE_URL}/api/tags" > /dev/null 2>&1; do
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+                echo "WARNING: Ollama did not become ready. Model installation skipped."
+                exit 0
+            fi
+            sleep 3
+        done
+        
+        MODEL_LIST=$(curl -s "${OLLAMA_BASE_URL}/api/tags" || echo "")
+        if echo "$MODEL_LIST" | grep -q "${OLLAMA_MODEL}"; then
+            echo "Model ${OLLAMA_MODEL} is already installed."
+        else
+            echo "Model ${OLLAMA_MODEL} not found. Pulling model (this may take a while)..."
+            curl -X POST "${OLLAMA_BASE_URL}/api/pull" -d "{\"name\":\"${OLLAMA_MODEL}\"}" --no-buffer -s > /dev/null 2>&1 || true
+            echo "Model ${OLLAMA_MODEL} installation initiated (running in background)."
+        fi
+    ) &
+fi
+
 # Run migrations
 echo "Running database migrations..."
 php artisan migrate --force || echo "Migration failed or already up to date"

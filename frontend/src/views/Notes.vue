@@ -5,6 +5,17 @@
       <button @click="showAddModal = true" class="btn btn-primary">Add Note</button>
     </div>
 
+    <!-- Search Filter -->
+    <div v-if="!loading && notes.length > 0" class="mb-4">
+      <input
+        v-model="searchQuery"
+        type="text"
+        class="input"
+        placeholder="Search notes by title, body, or tag..."
+        style="max-width: 500px;"
+      />
+    </div>
+
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
       <div class="spinner"></div>
@@ -13,10 +24,13 @@
     
     <!-- Table View -->
     <div v-else class="card">
-      <div v-if="notes.length === 0" class="text-center text-gray-600 py-8">
-        No notes yet. Create one to get started!
+      <div v-if="filteredNotes.length === 0" class="text-center text-gray-600 py-8">
+        <span v-if="notes.length === 0">No notes yet. Create one to get started!</span>
+        <span v-else>No notes match your search.</span>
       </div>
-      <table v-else class="data-table">
+      <template v-else>
+        <!-- Desktop Table View -->
+        <table class="data-table desktop-table">
         <thead>
           <tr>
             <th>Title</th>
@@ -27,7 +41,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="note in notes" :key="note.id">
+          <tr v-for="note in filteredNotes" :key="note.id">
             <td>
               <strong>{{ note.title }}</strong>
             </td>
@@ -52,6 +66,34 @@
           </tr>
         </tbody>
       </table>
+      
+      <!-- Mobile Card View -->
+      <div class="mobile-cards">
+        <div v-for="note in filteredNotes" :key="note.id" class="mobile-card">
+          <div class="mobile-card-header">
+            <strong>{{ note.title }}</strong>
+          </div>
+          <div class="mobile-card-field">
+            <span class="field-label">Body:</span>
+            <span class="text-gray-600">{{ truncateText(note.body, 150) }}</span>
+          </div>
+          <div v-if="note.tag" class="mobile-card-field">
+            <span class="field-label">Tag:</span>
+            <span class="tag-badge" :style="{ backgroundColor: note.tag.color || '#e5e7eb', color: '#1f2937' }">
+              {{ note.tag.name }}
+            </span>
+          </div>
+          <div class="mobile-card-field">
+            <span class="field-label">Created:</span>
+            <span class="text-gray-600">{{ formatDate(note.created_at) }}</span>
+          </div>
+          <div class="mobile-card-actions">
+            <button @click="editNote(note)" class="btn btn-secondary btn-sm">Edit</button>
+            <button @click="deleteNote(note.id)" class="btn btn-danger btn-sm">Delete</button>
+          </div>
+        </div>
+      </div>
+      </template>
     </div>
 
     <!-- Add/Edit Modal -->
@@ -88,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import api from '../services/api'
 import useToastNotification from '../composables/useToast'
 
@@ -100,10 +142,28 @@ const loading = ref(false)
 const saving = ref(false)
 const showAddModal = ref(false)
 const editingNote = ref(null)
+const searchQuery = ref('')
 const noteForm = ref({
   title: '',
   body: '',
   tag_id: null
+})
+
+const filteredNotes = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return notes.value
+  }
+  
+  const query = searchQuery.value.toLowerCase().trim()
+  return notes.value.filter(note => {
+    const title = (note.title || '').toLowerCase()
+    const body = (note.body || '').toLowerCase()
+    const tagName = (note.tag?.name || '').toLowerCase()
+    
+    return title.includes(query) || 
+           body.includes(query) || 
+           tagName.includes(query)
+  })
 })
 
 onMounted(() => {
@@ -282,14 +342,72 @@ textarea.input {
   100% { transform: rotate(360deg); }
 }
 
+/* Mobile Responsive */
+.desktop-table {
+  display: table;
+}
+
+.mobile-cards {
+  display: none;
+}
+
+.mobile-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mobile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.mobile-card-field {
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mobile-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
 @media (max-width: 768px) {
-  .data-table {
-    font-size: 0.875rem;
+  .desktop-table {
+    display: none;
   }
   
-  .data-table th,
-  .data-table td {
-    padding: 0.5rem;
+  .mobile-cards {
+    display: block;
+  }
+  
+  .flex.items-center.justify-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .flex.items-center.justify-between h2 {
+    margin: 0;
   }
 }
 </style>

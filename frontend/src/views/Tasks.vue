@@ -5,6 +5,17 @@
       <button @click="showAddModal = true" class="btn btn-primary">Add Task</button>
     </div>
 
+    <!-- Search Filter -->
+    <div v-if="!loading && tasks.length > 0" class="mb-4">
+      <input
+        v-model="searchQuery"
+        type="text"
+        class="input"
+        placeholder="Search tasks by title, description, tag, or status..."
+        style="max-width: 500px;"
+      />
+    </div>
+
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
       <div class="spinner"></div>
@@ -13,10 +24,13 @@
     
     <!-- Table View -->
     <div v-else class="card">
-      <div v-if="tasks.length === 0" class="text-center text-gray-600 py-8">
-        No tasks yet. Create one to get started!
+      <div v-if="filteredTasks.length === 0" class="text-center text-gray-600 py-8">
+        <span v-if="tasks.length === 0">No tasks yet. Create one to get started!</span>
+        <span v-else>No tasks match your search.</span>
       </div>
-      <table v-else class="data-table">
+      <template v-else>
+        <!-- Desktop Table View -->
+        <table class="data-table desktop-table">
         <thead>
           <tr>
             <th>Title</th>
@@ -28,7 +42,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="task in tasks" :key="task.id" :class="{ 'completed': task.status === 'done' }">
+          <tr v-for="task in filteredTasks" :key="task.id" :class="{ 'completed': task.status === 'done' }">
             <td>
               <strong>{{ task.title }}</strong>
             </td>
@@ -59,6 +73,35 @@
           </tr>
         </tbody>
       </table>
+      
+      <!-- Mobile Card View -->
+      <div class="mobile-cards">
+        <div v-for="task in filteredTasks" :key="task.id" class="mobile-card" :class="{ 'completed': task.status === 'done' }">
+          <div class="mobile-card-header">
+            <strong>{{ task.title }}</strong>
+            <span :class="getStatusClass(task.status)">{{ task.status }}</span>
+          </div>
+          <div v-if="task.description" class="mobile-card-field">
+            <span class="field-label">Description:</span>
+            <span class="text-gray-600">{{ task.description }}</span>
+          </div>
+          <div v-if="task.due_at" class="mobile-card-field">
+            <span class="field-label">Due Date:</span>
+            <span class="text-gray-600">{{ formatDate(task.due_at) }}</span>
+          </div>
+          <div v-if="task.tag" class="mobile-card-field">
+            <span class="field-label">Tag:</span>
+            <span class="tag-badge" :style="{ backgroundColor: task.tag.color || '#e5e7eb', color: '#1f2937' }">
+              {{ task.tag.name }}
+            </span>
+          </div>
+          <div class="mobile-card-actions">
+            <button @click="editTask(task)" class="btn btn-secondary btn-sm">Edit</button>
+            <button @click="deleteTask(task.id)" class="btn btn-danger btn-sm">Delete</button>
+          </div>
+        </div>
+      </div>
+      </template>
     </div>
 
     <!-- Add/Edit Modal -->
@@ -107,7 +150,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import api from '../services/api'
 import useToastNotification from '../composables/useToast'
 
@@ -119,12 +162,32 @@ const loading = ref(false)
 const saving = ref(false)
 const showAddModal = ref(false)
 const editingTask = ref(null)
+const searchQuery = ref('')
 const taskForm = ref({
   title: '',
   description: '',
   status: 'pending',
   due_at: '',
   tag_id: null
+})
+
+const filteredTasks = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return tasks.value
+  }
+  
+  const query = searchQuery.value.toLowerCase().trim()
+  return tasks.value.filter(task => {
+    const title = (task.title || '').toLowerCase()
+    const description = (task.description || '').toLowerCase()
+    const status = (task.status || '').toLowerCase()
+    const tagName = (task.tag?.name || '').toLowerCase()
+    
+    return title.includes(query) || 
+           description.includes(query) || 
+           status.includes(query) || 
+           tagName.includes(query)
+  })
 })
 
 onMounted(() => {
@@ -347,14 +410,80 @@ textarea.input {
   100% { transform: rotate(360deg); }
 }
 
+/* Mobile Responsive */
+.desktop-table {
+  display: table;
+}
+
+.mobile-cards {
+  display: none;
+}
+
+.mobile-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mobile-card.completed {
+  opacity: 0.6;
+}
+
+.mobile-card.completed strong {
+  text-decoration: line-through;
+}
+
+.mobile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.mobile-card-field {
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mobile-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
 @media (max-width: 768px) {
-  .data-table {
-    font-size: 0.875rem;
+  .desktop-table {
+    display: none;
   }
   
-  .data-table th,
-  .data-table td {
-    padding: 0.5rem;
+  .mobile-cards {
+    display: block;
+  }
+  
+  .flex.items-center.justify-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .flex.items-center.justify-between h2 {
+    margin: 0;
   }
 }
 </style>

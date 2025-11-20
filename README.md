@@ -2,6 +2,8 @@
 
 A self-hostable personal AI assistant built with Laravel 11, Vue 3, and Docker. This application provides a complete personal productivity suite with AI-powered automation, secure data storage, and intelligent task management.
 
+**✨ New**: Automatic model installation! The backend container automatically installs the required Ollama model (`gemma3:1b`) on first startup - no manual setup needed!
+
 <img width="1600" height="778" alt="image" src="https://github.com/user-attachments/assets/398c575a-1c1e-4138-b37a-3d1227301357" />
 
 <img width="1600" height="766" alt="image" src="https://github.com/user-attachments/assets/ada1462e-2188-49d5-a165-44feaeb35b12" />
@@ -73,6 +75,33 @@ A self-hostable personal AI assistant built with Laravel 11, Vue 3, and Docker. 
 - **Whisper STT service** (optional, can be mocked for development)
 - **GPU Support (Optional)**: [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) for GPU acceleration
 
+### System Requirements
+
+#### Minimum Requirements
+- **CPU**: 2 cores (4 threads recommended)
+- **RAM**: 4 GB (6 GB recommended)
+- **Storage**: 10 GB free space (for Docker images, database, and models)
+- **Network**: Internet connection for initial setup and model downloads
+- **OS**: Windows 10/11, macOS 10.15+, or Linux (Ubuntu 20.04+, Debian 11+, etc.)
+
+**Note**: Minimum specs will work but may experience slower AI response times and limited concurrent operations.
+
+#### Recommended Requirements
+- **CPU**: 4+ cores (8+ threads for better performance)
+- **RAM**: 8 GB (16 GB for optimal performance)
+- **Storage**: 20+ GB free space (SSD recommended for better database performance)
+- **GPU**: NVIDIA GPU with 4+ GB VRAM (optional but highly recommended for faster AI inference)
+  - Supports CUDA 11.0+ or newer
+  - Enables GPU acceleration for Ollama
+- **Network**: Stable internet connection (for model downloads and updates)
+- **OS**: Latest stable version of Windows 11, macOS 13+, or Linux (Ubuntu 22.04+)
+
+**Performance Notes**:
+- With GPU: AI responses typically 2-5x faster
+- Without GPU: CPU inference works but slower (acceptable for development)
+- More RAM allows for larger models and better multitasking
+- SSD storage significantly improves database and application performance
+
 ## 🚀 Setup
 
 ### Quick Start with Docker (Recommended)
@@ -100,20 +129,23 @@ The Docker setup automatically handles all initialization steps including depend
    - Set proper file permissions
    - Optimize Laravel caches
 
-3. **Set up Ollama** (if not already running)
+3. **Ollama Model Installation** (Automatic)
    
-   **Option A: Install Ollama on Host (Recommended)**
-   - Download from: https://ollama.ai/download
-   - Install and run Ollama
-   - Pull the required model:
-     ```bash
-     ollama pull gemma3:1b
-     ```
-
-   **Option B: Use Docker Ollama** (Already configured)
-   - The `docker-compose.yml` includes an Ollama service
-   - It will automatically pull models on first use
-   - Access at `http://localhost:11434`
+   The backend container automatically installs the required model (`gemma3:1b`) when it starts:
+   - Waits for Ollama to be ready
+   - Checks if the model is already installed
+   - Pulls the model if missing (runs in background, non-blocking)
+   - Model installation happens automatically - no manual steps needed!
+   
+   **Note**: The first time you start the containers, model installation may take a few minutes depending on your internet connection. You can monitor progress in the backend logs:
+   ```bash
+   docker-compose logs -f backend | grep -i "model\|ollama"
+   ```
+   
+   **Manual Installation** (if needed):
+   ```bash
+   docker-compose exec ollama ollama pull gemma3:1b
+   ```
 
 4. **Set up Mailpit** (for email OTP)
    - Already included in Docker Compose
@@ -219,6 +251,17 @@ To enable GPU acceleration for Ollama:
 2. Restart Docker daemon
 3. The `docker-compose.yml` is already configured with GPU support
 4. Restart containers: `docker-compose restart ollama`
+
+**GPU Requirements**:
+- NVIDIA GPU with CUDA support
+- Minimum 4 GB VRAM (8+ GB recommended for larger models)
+- NVIDIA drivers installed on host system
+- Docker Desktop with GPU support enabled (Windows/macOS) or native Docker with NVIDIA runtime (Linux)
+
+**Performance Impact**:
+- **With GPU**: AI responses in 1-3 seconds
+- **Without GPU**: AI responses in 5-15 seconds (CPU inference)
+- GPU acceleration is optional but highly recommended for better user experience
 
 ## 📖 How It Works
 
@@ -570,6 +613,12 @@ PAIA/
 - Generates AI responses
 - Manages error handling and retries
 
+**Docker Entrypoint** (`backend/docker-entrypoint.sh`):
+- Automatic database setup and migrations
+- Automatic Ollama model installation (runs in background)
+- Dependency installation and optimization
+- File permission management
+
 **AiMemoryService** (`app/Services/AiMemoryService.php`):
 - Manages user memories
 - Tracks behavior patterns
@@ -617,9 +666,15 @@ PAIA/
 
 2. Verify model is installed:
    ```bash
+   # Check models in Docker Ollama
+   docker-compose exec ollama ollama list
+   
+   # Or if using host Ollama
    ollama list
-   # If gemma3:1b is missing:
-   ollama pull gemma3:1b
+   
+   # If gemma3:1b is missing, it should install automatically on backend startup
+   # Or install manually:
+   docker-compose exec ollama ollama pull gemma3:1b
    ```
 
 3. Check health endpoint:
