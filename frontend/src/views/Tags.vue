@@ -81,42 +81,17 @@
       
       <!-- Mobile Card View -->
       <div class="mobile-cards">
-        <div v-for="tag in filteredTags" :key="tag.id" class="mobile-card">
-          <div class="mobile-card-header">
-            <div class="flex items-center gap-2">
-              <span 
-                class="tag-badge-preview" 
-                :style="{ backgroundColor: tag.color || '#e5e7eb', color: '#1f2937' }"
-              >
-                {{ tag.name }}
-              </span>
-            </div>
-          </div>
-          <div class="mobile-card-field">
-            <span class="field-label">Color:</span>
-            <div class="flex items-center gap-2">
-              <input 
-                type="color" 
-                :value="tag.color || '#3b82f6'" 
-                disabled
-                class="color-preview"
-              />
-              <span class="text-gray-600">{{ tag.color || '#3b82f6' }}</span>
-            </div>
-          </div>
-          <div v-if="tag.description" class="mobile-card-field">
-            <span class="field-label">Description:</span>
-            <span class="text-gray-600">{{ tag.description }}</span>
-          </div>
-          <div class="mobile-card-field">
-            <span class="field-label">Usage:</span>
-            <span class="text-gray-600">{{ getTagUsage(tag.id) }} items</span>
-          </div>
-          <div class="mobile-card-actions">
+        <TagCard
+          v-for="tag in filteredTags"
+          :key="tag.id"
+          :tag="tag"
+          :usage="getTagUsage(tag.id)"
+        >
+          <template #actions="{ tag }">
             <button @click="editTag(tag)" class="btn btn-secondary btn-sm">Edit</button>
             <button @click="deleteTag(tag.id)" class="btn btn-danger btn-sm">Delete</button>
-          </div>
-        </div>
+          </template>
+        </TagCard>
       </div>
       </template>
     </div>
@@ -163,6 +138,7 @@
 import { ref, onMounted, computed } from 'vue'
 import api from '../services/api'
 import useToastNotification from '../composables/useToast'
+import TagCard from '../components/TagCard.vue'
 
 const toast = useToastNotification()
 
@@ -402,45 +378,6 @@ textarea.input {
   display: none;
 }
 
-.mobile-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-bottom: 1rem;
-}
-
-.mobile-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.mobile-card-field {
-  margin-bottom: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.field-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.mobile-card-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-}
 
 @media (max-width: 768px) {
   .desktop-table {
