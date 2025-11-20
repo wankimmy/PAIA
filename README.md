@@ -2,6 +2,17 @@
 
 A self-hostable personal AI assistant built with Laravel 11, Vue 3, and Docker. This application provides a complete personal productivity suite with AI-powered automation, secure data storage, and intelligent task management.
 
+<img width="1600" height="778" alt="image" src="https://github.com/user-attachments/assets/398c575a-1c1e-4138-b37a-3d1227301357" />
+
+<img width="1600" height="766" alt="image" src="https://github.com/user-attachments/assets/ada1462e-2188-49d5-a165-44feaeb35b12" />
+
+<img width="1600" height="718" alt="image" src="https://github.com/user-attachments/assets/8f023fb4-e14b-4654-b327-a88c150d2437" />
+
+<img width="1600" height="823" alt="image" src="https://github.com/user-attachments/assets/f80678e1-8b4f-4f4d-9dbe-d2d6fc6cbc37" />
+
+<img width="1600" height="776" alt="image" src="https://github.com/user-attachments/assets/c74b0235-dbe6-4b01-a344-ddd78c9e5b95" />
+
+
 ## 🚀 Features
 
 ### Core Features
