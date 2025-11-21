@@ -14,6 +14,16 @@ A self-hostable personal AI assistant built with Laravel 11, Vue 3, and Docker. 
 
 <img width="1600" height="776" alt="image" src="https://github.com/user-attachments/assets/c74b0235-dbe6-4b01-a344-ddd78c9e5b95" />
 
+<img width="1600" height="742" alt="image" src="https://github.com/user-attachments/assets/eaf1833a-9528-43a9-a161-75e07be996e9" />
+
+<img width="1600" height="773" alt="image" src="https://github.com/user-attachments/assets/b57bea7c-eaad-41d0-bb29-4af9b0c7af29" />
+
+<img width="1600" height="761" alt="image" src="https://github.com/user-attachments/assets/a577dc2e-8cd4-41ca-88cb-d88c4e31f426" />
+
+
+<img width="1600" height="772" alt="image" src="https://github.com/user-attachments/assets/6d6470c4-ef5c-4f21-b8d7-03a3513fe936" />
+
+
 
 ## 🚀 Features
 
