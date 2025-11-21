@@ -14,10 +14,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      ollama:
-        condition: service_healthy
-      mailpit:
-        condition: service_healthy
+      - ollama
+      - mailpit
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
@@ -94,15 +92,17 @@ services:
     # GPU support - uses local GPU if NVIDIA drivers are installed
     # Requires: NVIDIA Container Toolkit installed on host
     # Install: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
-    runtime: nvidia
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+    # Uncomment the following lines if you have NVIDIA GPU support:
+    # runtime: nvidia
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=all
+    # Healthcheck temporarily disabled - uncomment when services are stable
+    # healthcheck:
+    #   test: ["CMD-SHELL", "ollama list || exit 1"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 3
+    #   start_period: 30s
 
   # Mailpit - Open-source email testing tool
   mailpit:
@@ -116,12 +116,13 @@ services:
     environment:
       - MP_SMTP_BIND_ADDR=0.0.0.0:1025
       - MP_WEB_BIND_ADDR=0.0.0.0:8025
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8025"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 10s
+    # Healthcheck temporarily disabled - uncomment when services are stable
+    # healthcheck:
+    #   test: ["CMD-SHELL", "nc -z localhost 8025 || exit 1"]
+    #   interval: 5s
+    #   timeout: 3s
+    #   retries: 3
+    #   start_period: 10s
 
 networks:
   paia-network:

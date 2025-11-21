@@ -15,7 +15,7 @@
         </div>
         <div v-if="loading" class="message assistant">
           <div class="message-content">
-            <strong>{{ displayAiName }}</strong>
+            <strong>{{ displayAiName }}:</strong>
             <div style="margin-top: 0.5rem;">
               <div v-if="currentProcess" class="process-indicator">
                 <div class="process-step">
@@ -23,7 +23,12 @@
                   <span>{{ currentProcess.message }}</span>
                 </div>
               </div>
-              <div v-else>Processing...</div>
+              <div v-else class="typing-indicator">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-text">Thinking...</span>
+              </div>
             </div>
           </div>
         </div>
@@ -225,6 +230,11 @@ const sendMessage = async () => {
   loading.value = true
   currentProcess.value = null
   processIndex.value = 0
+  
+  // Scroll to show loading indicator
+  nextTick(() => {
+    scrollToBottom()
+  })
 
   try {
     const response = await api.post('/ai/chat', {
@@ -262,6 +272,39 @@ const sendMessage = async () => {
       }
       if (actions.passwords?.length > 0) {
         actionMessages.push(`🔐 Created ${actions.passwords.length} password entry/entries`)
+      }
+      if (actions.tags?.length > 0) {
+        actionMessages.push(`🏷️ Created ${actions.tags.length} tag(s)`)
+      }
+      if (actions.tags_updated?.length > 0) {
+        actionMessages.push(`🔄 Updated ${actions.tags_updated.length} tag(s)`)
+      }
+      if (actions.tags_deleted?.length > 0) {
+        actionMessages.push(`🗑️ Deleted ${actions.tags_deleted.length} tag(s)`)
+      }
+      if (actions.tasks_updated?.length > 0) {
+        actionMessages.push(`🔄 Updated ${actions.tasks_updated.length} task(s)`)
+      }
+      if (actions.tasks_deleted?.length > 0) {
+        actionMessages.push(`🗑️ Deleted ${actions.tasks_deleted.length} task(s)`)
+      }
+      if (actions.notes_updated?.length > 0) {
+        actionMessages.push(`🔄 Updated ${actions.notes_updated.length} note(s)`)
+      }
+      if (actions.notes_deleted?.length > 0) {
+        actionMessages.push(`🗑️ Deleted ${actions.notes_deleted.length} note(s)`)
+      }
+      if (actions.passwords_updated?.length > 0) {
+        actionMessages.push(`🔄 Updated ${actions.passwords_updated.length} password entry/entries`)
+      }
+      if (actions.passwords_deleted?.length > 0) {
+        actionMessages.push(`🗑️ Deleted ${actions.passwords_deleted.length} password entry/entries`)
+      }
+      if (actions.meetings_updated?.length > 0) {
+        actionMessages.push(`🔄 Updated ${actions.meetings_updated.length} meeting(s)`)
+      }
+      if (actions.meetings_deleted?.length > 0) {
+        actionMessages.push(`🗑️ Deleted ${actions.meetings_deleted.length} meeting(s)`)
       }
 
       if (actionMessages.length > 0) {
@@ -702,6 +745,51 @@ onUnmounted(() => {
   50% {
     opacity: 0.5;
     transform: scale(1.2);
+  }
+}
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6e6b7b;
+  font-size: 0.9rem;
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7367f0;
+  display: inline-block;
+  animation: typing-bounce 1.4s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.typing-text {
+  margin-left: 0.25rem;
+  color: #6e6b7b;
+}
+
+@keyframes typing-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
   }
 }
 

@@ -59,6 +59,7 @@
             </td>
             <td>
               <div class="flex gap-2">
+                <button @click="viewNote(note)" class="btn btn-primary btn-sm">View</button>
                 <button @click="editNote(note)" class="btn btn-secondary btn-sm">Edit</button>
                 <button @click="deleteNote(note.id)" class="btn btn-danger btn-sm">Delete</button>
               </div>
@@ -88,12 +89,50 @@
             <span class="text-gray-600">{{ formatDate(note.created_at) }}</span>
           </div>
           <div class="mobile-card-actions">
+            <button @click="viewNote(note)" class="btn btn-primary btn-sm">View</button>
             <button @click="editNote(note)" class="btn btn-secondary btn-sm">Edit</button>
             <button @click="deleteNote(note.id)" class="btn btn-danger btn-sm">Delete</button>
           </div>
         </div>
       </div>
       </template>
+    </div>
+
+    <!-- View Modal -->
+    <div v-if="viewingNote" class="modal" @click.self="closeViewModal">
+      <div class="modal-content view-modal">
+        <div class="flex items-center justify-between mb-4">
+          <h3>Note Details</h3>
+          <button @click="closeViewModal" class="btn-close">&times;</button>
+        </div>
+        <div v-if="viewingNote" class="view-content">
+          <div class="view-field">
+            <label class="view-label">Title</label>
+            <div class="view-value">{{ viewingNote.title }}</div>
+          </div>
+          <div class="view-field">
+            <label class="view-label">Body</label>
+            <div class="view-value">{{ viewingNote.body }}</div>
+          </div>
+          <div class="view-field">
+            <label class="view-label">Tag</label>
+            <div class="view-value">
+              <span v-if="viewingNote.tag" class="tag-badge" :style="{ backgroundColor: viewingNote.tag.color || '#e5e7eb', color: '#1f2937' }">
+                {{ viewingNote.tag.name }}
+              </span>
+              <span v-else>-</span>
+            </div>
+          </div>
+          <div class="view-field">
+            <label class="view-label">Created</label>
+            <div class="view-value">{{ formatDate(viewingNote.created_at) }}</div>
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button @click="editNote(viewingNote)" class="btn btn-secondary" style="flex: 1;">Edit</button>
+          <button @click="closeViewModal" class="btn btn-primary" style="flex: 1;">Close</button>
+        </div>
+      </div>
     </div>
 
     <!-- Add/Edit Modal -->
@@ -142,6 +181,7 @@ const loading = ref(false)
 const saving = ref(false)
 const showAddModal = ref(false)
 const editingNote = ref(null)
+const viewingNote = ref(null)
 const searchQuery = ref('')
 const noteForm = ref({
   title: '',
@@ -229,7 +269,16 @@ const saveNote = async () => {
   }
 }
 
+const viewNote = (note) => {
+  viewingNote.value = note
+}
+
+const closeViewModal = () => {
+  viewingNote.value = null
+}
+
 const editNote = (note) => {
+  closeViewModal()
   editingNote.value = note
   noteForm.value = {
     title: note.title,
@@ -383,13 +432,66 @@ textarea.input {
   letter-spacing: 0.05em;
 }
 
-.mobile-card-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-}
+  .mobile-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .view-modal {
+    max-width: 700px;
+  }
+
+  .view-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .view-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .view-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .view-value {
+    font-size: 1rem;
+    color: #1f2937;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .btn-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    transition: all 0.2s;
+  }
+
+  .btn-close:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+  }
 
 @media (max-width: 768px) {
   .desktop-table {

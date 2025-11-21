@@ -14,6 +14,16 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
+
+// Validate authentication on app startup
+const authStore = useAuthStore()
+if (authStore.isAuthenticated) {
+  // Validate token by fetching user data
+  authStore.fetchUser().catch(() => {
+    // Token is invalid, clear it
+    authStore.logout()
+  })
+}
 app.use(Toast, {
   transition: 'Vue-Toastification__bounce',
   maxToasts: 20,

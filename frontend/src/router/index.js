@@ -63,12 +63,31 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next('/login')
+  // If route requires authentication
+  if (to.meta.requiresAuth) {
+    // Check if token exists
+    if (!authStore.isAuthenticated) {
+      next('/login')
+      return
+    }
+    
+    // Validate token by fetching user data
+    // This ensures the token is still valid
+    try {
+      if (!authStore.user) {
+        await authStore.fetchUser()
+      }
+      next()
+    } catch (error) {
+      // Token is invalid, clear it and redirect to login
+      authStore.logout()
+      next('/login')
+    }
   } else if (to.path === '/login' && authStore.isAuthenticated) {
+    // If already authenticated, redirect to dashboard
     next('/')
   } else {
     next()

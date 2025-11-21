@@ -433,18 +433,47 @@ const calendarDays = computed(() => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   
+  // Helper function to get date string in local timezone (YYYY-MM-DD)
+  const getLocalDateString = (date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  
+  // Helper function to get meeting date in user's timezone
+  const getMeetingDateString = (meetingStartTime) => {
+    if (!meetingStartTime) return null
+    const meetingDate = new Date(meetingStartTime)
+    
+    // If user has a timezone preference, use it; otherwise use browser timezone
+    if (userTimezone.value && userTimezone.value !== 'UTC') {
+      // Format date in user's timezone
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: userTimezone.value,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      })
+      return formatter.format(meetingDate)
+    } else {
+      // Use browser's local timezone
+      return getLocalDateString(meetingDate)
+    }
+  }
+  
   for (let i = 0; i < 42; i++) {
     const date = new Date(startDate)
     date.setDate(startDate.getDate() + i)
     
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = getLocalDateString(date)
     const dayMeetings = meetings.value.filter(m => {
-      const meetingDate = new Date(m.start_time).toISOString().split('T')[0]
-      return meetingDate === dateStr
+      const meetingDateStr = getMeetingDateString(m.start_time)
+      return meetingDateStr === dateStr
     })
     
     const isCurrentMonth = date.getMonth() === month
-    const isToday = date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
+    const isToday = dateStr === getLocalDateString(today)
     
     days.push({
       date: dateStr,

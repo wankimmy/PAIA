@@ -149,6 +149,7 @@ class MeetingController extends Controller
 
     /**
      * Convert an optional datetime string from the given timezone to UTC.
+     * The datetime string is expected to be in format "YYYY-MM-DDTHH:mm" (from datetime-local input).
      *
      * @param string|null $datetimeString
      * @param string $timezone
@@ -156,7 +157,21 @@ class MeetingController extends Controller
      */
     private function convertToUtc($datetimeString, $timezone)
     {
-        return $datetimeString ? Carbon::parse($datetimeString, $timezone)->utc() : null;
+        if (!$datetimeString) {
+            return null;
+        }
+        
+        // datetime-local input gives us "YYYY-MM-DDTHH:mm" without timezone info
+        // Parse it in the user's timezone, then convert to UTC
+        try {
+            // Create Carbon instance in the specified timezone
+            $carbon = Carbon::createFromFormat('Y-m-d\TH:i', $datetimeString, $timezone);
+            // Convert to UTC for storage
+            return $carbon->utc();
+        } catch (\Exception $e) {
+            // Fallback: try parsing with Carbon's flexible parser
+            return Carbon::parse($datetimeString, $timezone)->utc();
+        }
     }
 
     public function addReminder(Request $request, $id)
