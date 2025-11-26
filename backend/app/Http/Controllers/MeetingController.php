@@ -23,12 +23,12 @@ class MeetingController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'title' => 'required|string|max:' . config('security.max_lengths.title', 500),
+            'description' => 'nullable|string|max:' . config('security.max_lengths.description', 10000),
             'start_time' => 'required|date',
             'end_time' => 'nullable|date|after:start_time',
-            'location' => 'nullable|string|max:255',
-            'attendees' => 'nullable|string',
+            'location' => 'nullable|string|max:500',
+            'attendees' => 'nullable|string|max:1000',
             'status' => 'nullable|in:scheduled,cancelled,completed',
             'created_via' => 'nullable|in:manual,voice,ai',
             'tag_id' => 'nullable|exists:tags,id',
@@ -81,12 +81,12 @@ class MeetingController extends Controller
         $meeting = $request->user()->meetings()->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'title' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
+            'title' => 'sometimes|required|string|max:' . config('security.max_lengths.title', 500),
+            'description' => 'nullable|string|max:' . config('security.max_lengths.description', 10000),
             'start_time' => 'sometimes|required|date',
             'end_time' => 'nullable|date|after:start_time',
-            'location' => 'nullable|string|max:255',
-            'attendees' => 'nullable|string',
+            'location' => 'nullable|string|max:500',
+            'attendees' => 'nullable|string|max:1000',
             'status' => 'nullable|in:scheduled,cancelled,completed',
             'tag_id' => 'nullable|exists:tags,id',
         ]);

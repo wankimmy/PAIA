@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('ai_interactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('interaction_type'); // chat, voice_command, task_complete, reminder_snooze, reminder_fired
+            $table->string('interaction_type', 50); // chat, voice_command, task_complete, reminder_snooze, reminder_fired - limited for index
             $table->text('metadata')->nullable(); // JSON
             $table->timestamp('occurred_at');
             $table->timestamps();

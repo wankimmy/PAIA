@@ -34,8 +34,15 @@ class VoiceController extends Controller
 
     public function command(Request $request)
     {
+        $maxSize = config('security.file_upload.max_size', 10485760); // 10MB default
+        
         $validator = Validator::make($request->all(), [
-            'audio' => 'required|file|mimes:mp3,wav,ogg,m4a,webm|max:10240',
+            'audio' => [
+                'required',
+                'file',
+                'mimes:mp3,wav,ogg,m4a,webm',
+                'max:' . ($maxSize / 1024), // Convert to KB
+            ],
         ]);
 
         if ($validator->fails()) {

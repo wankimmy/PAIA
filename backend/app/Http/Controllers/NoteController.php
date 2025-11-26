@@ -40,8 +40,8 @@ class NoteController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'body' => 'required|string',
+            'title' => 'required|string|max:' . config('security.max_lengths.title', 500),
+            'body' => 'required|string|max:' . config('security.max_lengths.body', 50000),
             'tag_id' => 'nullable|exists:tags,id',
         ]);
 

@@ -11,11 +11,11 @@ return new class extends Migration
         Schema::create('ai_memories', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('category'); // personal_fact, preference, habit, goal, boundary
-            $table->string('key');
+            $table->string('category', 50); // personal_fact, preference, habit, goal, boundary - limited for index
+            $table->string('key', 191); // Limited to 191 to avoid key length issues
             $table->text('value'); // short sentence, max ~512 chars
             $table->integer('importance')->default(3); // 1 = low, 3 = medium, 5 = high
-            $table->string('source')->default('ai_inferred'); // user_input, ai_inferred, system
+            $table->string('source', 50)->default('ai_inferred'); // user_input, ai_inferred, system - limited for index
             $table->timestamps();
 
             $table->index(['user_id', 'category']);

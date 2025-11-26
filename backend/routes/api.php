@@ -79,9 +79,11 @@ Route::get('/health', function () {
     return response()->json($health, $statusCode);
 });
 
-// Public routes
-Route::post('/auth/request-otp', [AuthController::class, 'requestOtp']);
-Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
+// Public routes with rate limiting
+Route::post('/auth/request-otp', [AuthController::class, 'requestOtp'])
+    ->middleware('throttle:5,1'); // 5 requests per minute
+Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp'])
+    ->middleware('throttle:10,1'); // 10 requests per minute
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -107,10 +109,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/push/subscribe', [PushController::class, 'subscribe']);
     Route::delete('/push/unsubscribe', [PushController::class, 'unsubscribe']);
 
-    // AI
-    Route::post('/ai/chat', [AiController::class, 'chat']);
+    // AI (with rate limiting)
+    Route::post('/ai/chat', [AiController::class, 'chat'])
+        ->middleware('throttle:20,1'); // 20 requests per minute
     Route::get('/ai/chat/history', [AiController::class, 'getChatHistory']);
-    Route::post('/voice/command', [VoiceController::class, 'command']);
+    Route::post('/voice/command', [VoiceController::class, 'command'])
+        ->middleware('throttle:20,1');
 
     // User Preferences
     Route::get('/preferences', [UserPreferenceController::class, 'show']);

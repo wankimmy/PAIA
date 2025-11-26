@@ -11,9 +11,9 @@ class PushController extends Controller
     public function subscribe(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'endpoint' => 'required|string',
-            'keys.p256dh' => 'required|string',
-            'keys.auth' => 'required|string',
+            'endpoint' => 'required|string|url|max:2048',
+            'keys.p256dh' => 'required|string|max:500',
+            'keys.auth' => 'required|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -34,7 +34,7 @@ class PushController extends Controller
     public function unsubscribe(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'endpoint' => 'required|string',
+            'endpoint' => 'required|string|url|max:2048',
         ]);
 
         if ($validator->fails()) {

@@ -33,11 +33,17 @@ class AiController extends Controller
     public function chat(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'message' => 'required|string',
+            'message' => 'required|string|max:10000', // Limit message length to prevent DoS
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+        
+        // Sanitize input
+        $message = trim(strip_tags($request->message));
+        if (empty($message)) {
+            return response()->json(['errors' => ['message' => ['Message cannot be empty.']]], 422);
         }
 
         $user = $request->user();
@@ -389,13 +395,13 @@ class AiController extends Controller
         }
 
         // Get AI response (with context about executed actions)
-        $response = $this->ollama->chat($request->message, $context);
+        $response = $this->ollama->chat($message, $context);
 
         // Record interaction with full chat history
         $this->memoryService->recordInteraction($user, 'chat', [
-            'user_message' => $request->message,
+            'user_message' => $message,
             'ai_response' => $response,
-            'message_length' => strlen($request->message),
+            'message_length' => strlen($message),
             'response_length' => strlen($response),
             'actions_executed' => !empty($executedActions),
             'actions' => $executedActions,
@@ -403,7 +409,7 @@ class AiController extends Controller
 
         // Optional: Auto-update memories (if enabled)
         if (env('AI_AUTO_MEMORY_ENABLED', false)) {
-            $this->updateMemoriesFromConversation($user, $request->message, $response, $memories);
+            $this->updateMemoriesFromConversation($user, $message, $response, $memories);
         }
 
         return response()->json([

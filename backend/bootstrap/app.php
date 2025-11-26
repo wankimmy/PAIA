@@ -12,8 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Global security headers
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            \App\Http\Middleware\EnsureAuthorizedEmail::class, // Restrict to authorized email only
         ]);
 
         $middleware->validateCsrfTokens(except: [
@@ -24,18 +28,32 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
         ]);
+        
+        // Rate limiting for API routes
+        $middleware->throttleApi('60,1'); // 60 requests per minute
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // Ensure API errors return JSON
+        // Ensure API errors return JSON without data leakage
         $exceptions->render(function (\Throwable $e, $request) {
             if ($request->is('api/*')) {
+                // Log the full error for debugging (server-side only)
+                \Log::error('API Error', [
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString(),
+                    'url' => $request->fullUrl(),
+                    'method' => $request->method(),
+                    'ip' => $request->ip(),
+                ]);
+                
+                // Return generic error message to client (no sensitive data)
+                $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+                
                 return response()->json([
                     'error' => 'An error occurred',
                     'message' => config('app.debug') ? $e->getMessage() : 'Please try again later.',
-                    'file' => config('app.debug') ? $e->getFile() : null,
-                    'line' => config('app.debug') ? $e->getLine() : null,
-                    'trace' => config('app.debug') ? $e->getTraceAsString() : null,
-                ], 500);
+                ], $statusCode);
             }
         });
     })->create();

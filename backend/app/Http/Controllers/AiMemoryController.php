@@ -35,13 +35,20 @@ class AiMemoryController extends Controller
             $query->where('importance', '>=', $request->min_importance);
         }
 
-        // Search in value or key
+        // Search in value or key (with input validation)
         if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('value', 'like', "%{$search}%")
-                  ->orWhere('key', 'like', "%{$search}%");
-            });
+            $search = trim($request->search);
+            if (strlen($search) > 255) {
+                $search = substr($search, 0, 255); // Limit search length
+            }
+            // Sanitize search input to prevent SQL injection (though Eloquent handles it, extra safety)
+            $search = preg_replace('/[%_]/', '', $search); // Remove wildcards
+            if (!empty($search)) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('value', 'like', "%{$search}%")
+                      ->orWhere('key', 'like', "%{$search}%");
+                });
+            }
         }
 
         // Sort options
@@ -55,7 +62,9 @@ class AiMemoryController extends Controller
             $query->orderBy('importance', 'desc')->orderBy('updated_at', 'desc');
         }
 
-        $limit = min($request->get('limit', 50), 100);
+        // Limit pagination to prevent DoS
+        $limit = min((int)$request->get('limit', 50), 100);
+        $limit = max($limit, 1); // Ensure at least 1
         $memories = $query->limit($limit)->get();
 
         return response()->json($memories);
@@ -86,7 +95,14 @@ class AiMemoryController extends Controller
 
             return response()->json($memory, 201);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
+            \Log::error('AI Memory creation failed', [
+                'user_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'error' => 'Failed to create memory',
+                'message' => config('app.debug') ? $e->getMessage() : 'Please try again later.'
+            ], 400);
         }
     }
 

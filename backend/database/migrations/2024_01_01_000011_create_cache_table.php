@@ -9,13 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('cache', function (Blueprint $table) {
-            $table->string('key')->primary();
+            $table->string('key', 191)->primary(); // Reduced from 255 to 191 to avoid MySQL key length limit
             $table->mediumText('value');
             $table->integer('expiration');
         });
 
         Schema::create('cache_locks', function (Blueprint $table) {
-            $table->string('key')->primary();
+            $table->string('key', 191)->primary(); // Reduced from 255 to 191 to avoid MySQL key length limit
             $table->string('owner');
             $table->integer('expiration');
         });

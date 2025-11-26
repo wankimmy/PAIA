@@ -15,6 +15,7 @@ return [
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
     'cipher' => 'AES-256-CBC',
     'key' => env('APP_KEY'),
+    'authorized_email' => env('AUTHORIZED_EMAIL', 'putrafyp@gmail.com'),
     'previous_key' => env('APP_PREVIOUS_KEY'),
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),

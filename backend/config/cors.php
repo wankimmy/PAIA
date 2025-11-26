@@ -6,7 +6,11 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:3000', 'http://localhost:8000'],
+    'allowed_origins' => array_filter([
+        env('FRONTEND_URL', 'https://kawan.safwanhakim.com'),
+        config('app.debug') ? 'http://localhost:3000' : null,
+        config('app.debug') ? 'http://localhost:8000' : null,
+    ]),
 
     'allowed_origins_patterns' => [],
 

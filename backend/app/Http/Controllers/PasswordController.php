@@ -39,10 +39,10 @@ class PasswordController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'label' => 'required|string|max:255',
-            'username' => 'required|string|max:255',
-            'password' => 'required|string',
-            'notes' => 'nullable|string',
+            'label' => 'required|string|max:' . config('security.max_lengths.label', 255),
+            'username' => 'required|string|max:' . config('security.max_lengths.username', 255),
+            'password' => 'required|string|max:' . config('security.max_lengths.password', 1000),
+            'notes' => 'nullable|string|max:' . config('security.max_lengths.notes', 10000),
         ]);
 
         if ($validator->fails()) {

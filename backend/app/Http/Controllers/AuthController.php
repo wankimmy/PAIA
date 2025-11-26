@@ -15,14 +15,29 @@ class AuthController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'email' => 'required|email',
+                'email' => 'required|email|max:255',
             ]);
 
             if ($validator->fails()) {
                 return response()->json(['errors' => $validator->errors()], 422);
             }
 
-            $email = $request->email;
+            $email = strtolower(trim($request->email));
+            
+            // Check if email is authorized
+            $authorizedEmail = strtolower(config('security.authorized_email', config('app.authorized_email', 'putrafyp@gmail.com')));
+            if ($email !== $authorizedEmail) {
+                \Log::warning('Unauthorized OTP request attempt', [
+                    'email' => $email,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+                
+                // Return generic message to prevent email enumeration
+                return response()->json([
+                    'message' => 'If the email exists, an OTP has been sent.',
+                ], 200);
+            }
             
             // Check database connection
             try {
@@ -62,13 +77,9 @@ class AuthController extends Controller
                     'code' => $code, // Log code for development
                 ]);
                 
-                // In development, return the code in the response for testing
+                // In development, log the code but never return it in production
                 if (config('app.debug')) {
-                    return response()->json([
-                        'message' => 'OTP generated (email sending failed - check logs)',
-                        'code' => $code, // Only in debug mode
-                        'warning' => 'Email service not configured. Check backend logs for OTP code.',
-                    ]);
+                    \Log::info('OTP code (debug mode only)', ['code' => $code]);
                 }
             }
 
@@ -91,19 +102,42 @@ class AuthController extends Controller
     public function verifyOtp(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'code' => 'required|string|size:6',
+            'email' => 'required|email|max:255',
+            'code' => 'required|string|size:6|regex:/^[0-9]{6}$/',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $user = User::where('email', $request->email)->first();
+        $email = strtolower(trim($request->email));
+        $code = trim($request->code);
+        
+        // Check if email is authorized
+        $authorizedEmail = strtolower(config('security.authorized_email', config('app.authorized_email', 'putrafyp@gmail.com')));
+        if ($email !== $authorizedEmail) {
+            \Log::warning('Unauthorized OTP verification attempt', [
+                'email' => $email,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+            
+            // Return generic error to prevent enumeration
+            throw ValidationException::withMessages([
+                'code' => ['Invalid or expired code.'],
+            ]);
+        }
+
+        $user = User::where('email', $email)->first();
 
         if (!$user) {
+            \Log::warning('OTP verification for non-existent user', [
+                'email' => $email,
+                'ip' => $request->ip(),
+            ]);
+            
             throw ValidationException::withMessages([
-                'code' => ['Invalid code.'],
+                'code' => ['Invalid or expired code.'],
             ]);
         }
 

@@ -29,8 +29,15 @@ class ImportController extends Controller
 
     public function json(Request $request)
     {
+        $maxSize = config('security.file_upload.max_size', 10485760); // 10MB default
+        
         $validator = Validator::make($request->all(), [
-            'file' => 'required|file|mimes:json,application/json|max:10240', // 10MB max
+            'file' => [
+                'required',
+                'file',
+                'mimes:json,application/json',
+                'max:' . ($maxSize / 1024), // Convert to KB
+            ],
         ]);
 
         if ($validator->fails()) {
@@ -38,7 +45,30 @@ class ImportController extends Controller
         }
 
         $file = $request->file('file');
+        
+        // Additional security checks
+        $allowedMimes = config('security.file_upload.allowed_mime_types', ['application/json', 'text/json']);
+        if (!in_array($file->getMimeType(), $allowedMimes)) {
+            \Log::warning('Invalid file type upload attempt', [
+                'user_id' => $request->user()->id,
+                'mime_type' => $file->getMimeType(),
+                'ip' => $request->ip(),
+            ]);
+            return response()->json(['error' => 'Invalid file type.'], 422);
+        }
+        
+        // Check file size
+        if ($file->getSize() > $maxSize) {
+            return response()->json(['error' => 'File too large.'], 422);
+        }
+        
         $content = file_get_contents($file->getRealPath());
+        
+        // Validate JSON structure before decoding
+        if (empty($content)) {
+            return response()->json(['error' => 'File is empty.'], 422);
+        }
+        
         $data = json_decode($content, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
@@ -266,9 +296,17 @@ class ImportController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            // Log error but don't expose details to client
+            \Log::error('Import failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
             return response()->json([
                 'error' => 'Import failed',
-                'message' => $e->getMessage()
+                'message' => config('app.debug') ? $e->getMessage() : 'An error occurred during import. Please try again.'
             ], 500);
         }
     }

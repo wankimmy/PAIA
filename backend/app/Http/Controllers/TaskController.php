@@ -29,8 +29,8 @@ class TaskController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'title' => 'required|string|max:' . config('security.max_lengths.title', 500),
+            'description' => 'nullable|string|max:' . config('security.max_lengths.description', 10000),
             'status' => 'nullable|in:pending,done,cancelled',
             'due_at' => 'nullable|date',
             'tag' => 'nullable|string|max:255', // Keep for backward compatibility

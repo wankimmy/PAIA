@@ -18,8 +18,8 @@ class TagController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'color' => 'nullable|string|max:7',
-            'description' => 'nullable|string|max:500',
+            'color' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
+            'description' => 'nullable|string|max:1000',
         ]);
 
         if ($validator->fails()) {
@@ -46,8 +46,8 @@ class TagController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
-            'color' => 'nullable|string|max:7',
-            'description' => 'nullable|string|max:500',
+            'color' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
+            'description' => 'nullable|string|max:1000',
         ]);
 
         if ($validator->fails()) {

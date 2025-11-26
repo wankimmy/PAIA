@@ -27,9 +27,24 @@ class UserPreferenceController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'onboarding_completed' => 'sometimes|boolean',
-            'preferences' => 'sometimes|array',
-            'ai_context' => 'sometimes|array',
+            'preferences' => 'sometimes|array|max:100', // Limit array size
+            'ai_context' => 'sometimes|array|max:100', // Limit array size
         ]);
+        
+        // Validate array contents to prevent excessive data
+        if ($request->has('preferences') && is_array($request->preferences)) {
+            $prefSize = strlen(json_encode($request->preferences));
+            if ($prefSize > 100000) { // 100KB limit
+                return response()->json(['errors' => ['preferences' => ['Preferences data too large.']]], 422);
+            }
+        }
+        
+        if ($request->has('ai_context') && is_array($request->ai_context)) {
+            $contextSize = strlen(json_encode($request->ai_context));
+            if ($contextSize > 100000) { // 100KB limit
+                return response()->json(['errors' => ['ai_context' => ['AI context data too large.']]], 422);
+            }
+        }
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);

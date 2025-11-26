@@ -37,7 +37,7 @@ class ProfileController extends Controller
             'nickname' => 'nullable|string|max:255',
             'ai_name' => 'nullable|string|max:255',
             'pronouns' => 'nullable|string|max:50',
-            'bio' => 'nullable|string|max:1000',
+            'bio' => 'nullable|string|max:5000',
             'timezone' => 'nullable|string|max:100',
             'primary_language' => 'nullable|string|max:50',
             'preferred_tone' => 'nullable|in:friendly,professional,casual',
