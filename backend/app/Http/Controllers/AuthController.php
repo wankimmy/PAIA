@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\LoginOtp;
 use App\Models\User;
+use App\Services\PhpMailerService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -63,12 +63,10 @@ class AuthController extends Controller
                 'expires_at' => $expiresAt,
             ]);
 
-            // Send OTP via email (log if mail fails in development)
+            // Send OTP via email using PHPMailer
             try {
-                Mail::raw("Your login code is: {$code}\n\nThis code will expire in 10 minutes.", function ($message) use ($email) {
-                    $message->to($email)
-                            ->subject('Your Login Code');
-                });
+                $mailer = app(PhpMailerService::class);
+                $mailer->sendOtp($email, $code);
             } catch (\Exception $e) {
                 // Log the error but don't fail the request
                 \Log::warning('Failed to send OTP email', [
